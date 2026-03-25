@@ -21,8 +21,8 @@ import subprocess
 # --- Config -------------------------------------------------------------------
 GITHUB_REPO    = "https://github.com/huynguyentuank22/CO3133_DL.git"
 REPO_DIR       = "/kaggle/working/CO3133_DL"
-KAGGLE_DATASET = "/kaggle/input/clothing-reviews"
-RAW_CSV_NAME   = "Womens Clothing E-Commerce Reviews.csv"
+# Dataset huy281204/clothing-reviews chua san train/val/test.csv
+SPLITS_INPUT   = "/kaggle/input/clothing-reviews"
 
 # --- Helper -------------------------------------------------------------------
 def run(cmd, cwd=None):
@@ -51,35 +51,25 @@ print(f"[INFO] Working directory: {os.getcwd()}")
 EXTRA_DEPS = ["captum", "lime", "shap", "nltk", "imbalanced-learn"]
 run(f"pip install -q {' '.join(EXTRA_DEPS)}")
 
-# --- Step 3: Link dataset tu Kaggle input ------------------------------------
-os.makedirs("data/raw", exist_ok=True)
-src_csv = os.path.join(KAGGLE_DATASET, RAW_CSV_NAME)
-dst_csv = os.path.join("data/raw", RAW_CSV_NAME)
+# --- Step 3: Copy splits tu Kaggle dataset vao repo -------------------------
+import shutil
 
-if os.path.exists(src_csv):
-    if not os.path.exists(dst_csv):
-        import shutil
-        shutil.copy(src_csv, dst_csv)
-        print(f"[INFO] Copied dataset: {src_csv} -> {dst_csv}")
+os.makedirs("data/splits", exist_ok=True)
+for fname in ["train.csv", "val.csv", "test.csv"]:
+    src = os.path.join(SPLITS_INPUT, fname)
+    dst = os.path.join("data/splits", fname)
+    if not os.path.exists(dst):
+        if not os.path.exists(src):
+            raise FileNotFoundError(
+                f"Khong tim thay {src}.\n"
+                f"Dataset 'huy281204/clothing-reviews' can chua {fname}."
+            )
+        shutil.copy(src, dst)
+        print(f"[INFO] Copied: {src} -> {dst}")
     else:
-        print(f"[INFO] Dataset da co tai {dst_csv}")
-else:
-    raise FileNotFoundError(
-        f"Khong tim thay dataset tai {src_csv}.\n"
-        f"Hay them dataset 'clothing-reviews' vao kernel "
-        f"(kernel-metadata.json -> dataset_sources)."
-    )
+        print(f"[INFO] Da co: {dst}")
 
-# --- Step 4: Prepare data (chi chay neu splits chua co) ----------------------
-splits_done = all(
-    os.path.exists(f"data/splits/{f}")
-    for f in ["train.csv", "val.csv", "test.csv"]
-)
-if not splits_done:
-    print("\n[INFO] Chay prepare_data.py ...")
-    run("python scripts/prepare_data.py")
-else:
-    print("[INFO] Data splits da ton tai, bo qua prepare_data.")
+print("[INFO] Splits san sang, bo qua prepare_data.")
 
 # --- Step 5: Training ---------------------------------------------------------
 # Bo comment script nao muon chay:
