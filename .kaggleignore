@@ -1,0 +1,11 @@
+data/
+
+outputs/
+
+.env
+
+__pycache__/
+
+.git/
+
+.venv/

@@ -1,0 +1,15 @@
+{
+  "id": "huy281204/Clothing-Reviews-Kernel",
+  "title": "Clothing Reviews Kernel",
+  "code_file": "kaggle_runner.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": "true",
+  "enable_gpu": "true",
+  "enable_tpu": "false",
+  "enable_internet": "true",
+  "dataset_sources": ["huy281204/clothing-reviews"],
+  "competition_sources": [],
+  "kernel_sources": [],
+  "model_sources": []
+}
