@@ -84,5 +84,7 @@ def ensure_dirs():
     """Create all output directories if they don't exist."""
     for d in [DATA_PROCESSED_DIR, DATA_SPLITS_DIR, CHECKPOINT_DIR,
               FIGURES_DIR, REPORTS_DIR, TABLES_DIR, LOGS_DIR]:
-        if not os.path.isdir(d):   # also returns True for symlinks -> dir
-            os.makedirs(d, exist_ok=True)
+        if os.path.lexists(d) and not os.path.isdir(d):
+            # Handle conflicting files and broken/non-dir symlinks before makedirs.
+            os.remove(d)
+        os.makedirs(d, exist_ok=True)
