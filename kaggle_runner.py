@@ -51,25 +51,14 @@ print(f"[INFO] Working directory: {os.getcwd()}")
 EXTRA_DEPS = ["captum", "lime", "shap", "nltk", "imbalanced-learn"]
 run(f"pip install -q {' '.join(EXTRA_DEPS)}")
 
-# --- Step 3: Copy splits tu Kaggle dataset vao repo -------------------------
-import shutil
-
-os.makedirs("data/splits", exist_ok=True)
-for fname in ["train.csv", "val.csv", "test.csv"]:
-    src = os.path.join(SPLITS_INPUT, fname)
-    dst = os.path.join("data/splits", fname)
-    if not os.path.exists(dst):
-        if not os.path.exists(src):
-            raise FileNotFoundError(
-                f"Khong tim thay {src}.\n"
-                f"Dataset 'huy281204/clothing-reviews' can chua {fname}."
-            )
-        shutil.copy(src, dst)
-        print(f"[INFO] Copied: {src} -> {dst}")
-    else:
-        print(f"[INFO] Da co: {dst}")
-
-print("[INFO] Splits san sang, bo qua prepare_data.")
+# --- Step 3: Symlink data/splits -> /kaggle/input/clothing-reviews -----------
+# Khong can copy - doc thang tu Kaggle input
+splits_link = "data/splits"
+if not os.path.exists(splits_link):
+    os.symlink(SPLITS_INPUT, splits_link)
+    print(f"[INFO] Symlinked: {splits_link} -> {SPLITS_INPUT}")
+else:
+    print(f"[INFO] data/splits da ton tai")
 
 # --- Step 5: Training ---------------------------------------------------------
 # Bo comment script nao muon chay:
@@ -77,7 +66,7 @@ print("[INFO] Splits san sang, bo qua prepare_data.")
 print("\n[INFO] Bat dau training ...")
 
 # BiLSTM
-run("python scripts/train_bilstm.py")
+run("python scripts/train_bilstm.py --epochs 1")
 
 # BiLSTM + Attention
 # run("python scripts/train_bilstm_attention.py")
