@@ -1,0 +1,13 @@
+{
+  "accuracy": 0.5490427098674522,
+  "precision": 0.2900724034602907,
+  "recall": 0.296063071434977,
+  "macro_f1": 0.28257767188506433,
+  "weighted_f1": 0.5301954776888713,
+  "model_name": "distilbert_freeze_weighted_ce",
+  "num_parameters": 66366725,
+  "model_size_mb": 253.17,
+  "total_inference_time_sec": 62.6299,
+  "total_samples": 3395,
+  "inference_time_per_sample_ms": 18.4477
+}

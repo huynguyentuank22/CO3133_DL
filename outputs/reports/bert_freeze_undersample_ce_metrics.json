@@ -1,0 +1,13 @@
+{
+  "accuracy": 0.3711340206185567,
+  "precision": 0.23634446373768667,
+  "recall": 0.23625748524823073,
+  "macro_f1": 0.22665972412514196,
+  "weighted_f1": 0.4032455508490681,
+  "model_name": "bert_freeze_undersample_ce",
+  "num_parameters": 109486085,
+  "model_size_mb": 417.66,
+  "total_inference_time_sec": 203.0606,
+  "total_samples": 3395,
+  "inference_time_per_sample_ms": 59.8117
+}

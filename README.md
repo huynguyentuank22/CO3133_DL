@@ -74,6 +74,29 @@ python scripts/evaluate_all.py
 # → outputs/tables/model_comparison.csv
 ```
 
+## Latest Model Comparison Results
+
+Source: `outputs/tables/model_comparison.csv`
+
+| model_name | accuracy | macro_f1 | weighted_f1 | precision | recall | model_size_mb | inference_time_per_sample_ms |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| bilstm_weighted_ce | 0.6074 | 0.4758 | 0.6183 | 0.4623 | 0.4948 | 15.25 | 1.1469 |
+| bilstm_undersample_ce | 0.5432 | 0.3825 | 0.5544 | 0.3779 | 0.4253 | 12.08 | 1.0841 |
+| bilstm_attention_weighted_ce | 0.6477 | 0.5022 | 0.6525 | 0.4948 | 0.5134 | 15.25 | 1.1822 |
+| bilstm_attention_undersample_ce | 0.5758 | 0.3882 | 0.5653 | 0.3857 | 0.4164 | 12.08 | 1.1243 |
+| distilbert_freeze_weighted_ce | 0.5490 | 0.2826 | 0.5302 | 0.2901 | 0.2961 | 253.17 | 18.4477 |
+| distilbert_freeze_undersample_ce | 0.4309 | 0.1944 | 0.4033 | 0.2634 | 0.2353 | 253.17 | 22.0174 |
+| distilbert_full_weighted_ce | 0.6592 | 0.5392 | 0.6703 | 0.5509 | 0.5433 | 253.17 | 22.1121 |
+| distilbert_full_undersample_ce | 0.6306 | 0.5181 | 0.6432 | 0.4971 | 0.5537 | 253.17 | 24.6578 |
+| distilbert_llrd_weighted_ce | 0.6604 | 0.5428 | 0.6714 | 0.5413 | 0.5528 | 253.17 | 25.9265 |
+| distilbert_llrd_undersample_ce | 0.6295 | 0.5114 | 0.6410 | 0.4903 | 0.5495 | 253.17 | 30.8181 |
+| bert_freeze_weighted_ce | 0.4901 | 0.2525 | 0.4682 | 0.2601 | 0.2607 | 417.66 | 58.1530 |
+| bert_freeze_undersample_ce | 0.3711 | 0.2267 | 0.4032 | 0.2363 | 0.2363 | 417.66 | 59.8117 |
+| bert_full_weighted_ce | 0.6630 | 0.5474 | 0.6765 | 0.5579 | 0.5525 | 417.66 | 65.6044 |
+| bert_full_undersample_ce | 0.6574 | 0.5391 | 0.6646 | 0.5207 | 0.5740 | 417.66 | 63.3480 |
+| bert_llrd_weighted_ce | 0.6825 | 0.5646 | 0.6891 | 0.5636 | 0.5690 | 417.66 | 58.7579 |
+| bert_llrd_undersample_ce | 0.6580 | 0.5247 | 0.6615 | 0.5190 | 0.5424 | 417.66 | 60.6179 |
+
 ## Imbalance Strategy Comparison
 
 ```bash

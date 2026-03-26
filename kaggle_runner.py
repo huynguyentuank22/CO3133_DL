@@ -72,12 +72,12 @@ else:
 print("\n[INFO] Bat dau training ...")
 
 # BiLSTM
-# run("python scripts/train_bilstm.py --imbalance weighted_ce")
-# run("python scripts/train_bilstm.py --imbalance undersample_ce")
+run("python scripts/train_bilstm.py --imbalance weighted_ce")
+run("python scripts/train_bilstm.py --imbalance undersample_ce")
 
 # BiLSTM + Attention
-# run("python scripts/train_bilstm_attention.py --imbalance weighted_ce")
-# run("python scripts/train_bilstm_attention.py --imbalance undersample_ce")
+run("python scripts/train_bilstm_attention.py --imbalance weighted_ce")
+run("python scripts/train_bilstm_attention.py --imbalance undersample_ce")
 
 # DistilBERT
 # run("python scripts/train_distilbert.py --finetune full --imbalance weighted_ce")
@@ -92,8 +92,8 @@ print("\n[INFO] Bat dau training ...")
 # run("python scripts/train_transformer_large.py --finetune full --imbalance undersample_ce")
 # run("python scripts/train_transformer_large.py --finetune freeze --imbalance weighted_ce")
 # run("python scripts/train_transformer_large.py --finetune freeze --imbalance undersample_ce")
-run("python scripts/train_transformer_large.py --finetune llrd --imbalance weighted_ce")
-run("python scripts/train_transformer_large.py --finetune llrd --imbalance undersample_ce")
+# run("python scripts/train_transformer_large.py --finetune llrd --imbalance weighted_ce")
+# run("python scripts/train_transformer_large.py --finetune llrd --imbalance undersample_ce")
 
 # --- (Tuy chon) Post-training analysis ----------------------------------------
 # run("python scripts/evaluate_all.py")
