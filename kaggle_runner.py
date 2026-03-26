@@ -22,7 +22,7 @@ import subprocess
 GITHUB_REPO    = "https://github.com/huynguyentuank22/CO3133_DL.git"
 REPO_DIR       = "/kaggle/working/CO3133_DL"
 # Dataset huy281204/clothing-reviews chua san train/val/test.csv
-SPLITS_INPUT   = "/kaggle/input/clothing-reviews"
+SPLITS_INPUT   = "/kaggle/input/datasets/huy281204/clothing-reviews"
 
 # --- Helper -------------------------------------------------------------------
 def run(cmd, cwd=None):
@@ -49,7 +49,13 @@ print(f"[INFO] Working directory: {os.getcwd()}")
 # Kaggle da co san torch, transformers, sklearn, pandas, numpy, matplotlib, seaborn, tqdm
 # Chi cai them nhung gi Kaggle chua co
 EXTRA_DEPS = ["captum", "lime", "shap", "nltk", "imbalanced-learn"]
-run(f"pip install -q {' '.join(EXTRA_DEPS)}")
+# run(f"pip install -q {' '.join(EXTRA_DEPS)}")
+run(
+    "python -m pip uninstall -y torch torchvision torchaudio && "
+    "python -m pip install --no-cache-dir "
+    "torch==2.9.1 torchvision==0.24.1 torchaudio==2.9.1 "
+    "--index-url https://download.pytorch.org/whl/cu126"
+)
 
 # --- Step 3: Symlink data/splits -> /kaggle/input/clothing-reviews -----------
 # Khong can copy - doc thang tu Kaggle input
@@ -66,16 +72,28 @@ else:
 print("\n[INFO] Bat dau training ...")
 
 # BiLSTM
-run("python scripts/train_bilstm.py --epochs 1")
+# run("python scripts/train_bilstm.py --imbalance weighted_ce")
+# run("python scripts/train_bilstm.py --imbalance undersample_ce")
 
 # BiLSTM + Attention
-# run("python scripts/train_bilstm_attention.py")
+# run("python scripts/train_bilstm_attention.py --imbalance weighted_ce")
+# run("python scripts/train_bilstm_attention.py --imbalance undersample_ce")
 
 # DistilBERT
-# run("python scripts/train_distilbert.py --finetune full --epochs 4")
+# run("python scripts/train_distilbert.py --finetune full --imbalance weighted_ce")
+# run("python scripts/train_distilbert.py --finetune full --imbalance undersample_ce")
+# run("python scripts/train_distilbert.py --finetune freeze --imbalance weighted_ce")
+# run("python scripts/train_distilbert.py --finetune freeze --imbalance undersample_ce")
+# run("python scripts/train_distilbert.py --finetune llrd --imbalance weighted_ce")
+# run("python scripts/train_distilbert.py --finetune llrd --imbalance undersample_ce")
 
 # BERT / Transformer Large
-# run("python scripts/train_transformer_large.py --finetune full --epochs 3")
+# run("python scripts/train_transformer_large.py --finetune full --imbalance weighted_ce")
+# run("python scripts/train_transformer_large.py --finetune full --imbalance undersample_ce")
+# run("python scripts/train_transformer_large.py --finetune freeze --imbalance weighted_ce")
+# run("python scripts/train_transformer_large.py --finetune freeze --imbalance undersample_ce")
+run("python scripts/train_transformer_large.py --finetune llrd --imbalance weighted_ce")
+run("python scripts/train_transformer_large.py --finetune llrd --imbalance undersample_ce")
 
 # --- (Tuy chon) Post-training analysis ----------------------------------------
 # run("python scripts/evaluate_all.py")

@@ -23,6 +23,29 @@ from src.efficiency import measure_inference_time
 logger = get_logger("evaluate_all", os.path.join(config.LOGS_DIR, "evaluate_all.log"))
 
 
+def load_rnn_vocab(checkpoint_name):
+    """Load vocab tied to one RNN checkpoint, fallback to legacy global vocab."""
+    vocab = Vocabulary()
+    vocab_dir = os.path.join(config.DATA_PROCESSED_DIR, "vocabs")
+    specific_vocab_path = os.path.join(vocab_dir, f"{checkpoint_name}_vocab.json")
+    legacy_vocab_path = os.path.join(config.DATA_PROCESSED_DIR, "vocab.json")
+
+    if os.path.exists(specific_vocab_path):
+        vocab.load(specific_vocab_path)
+        logger.info(f"Vocabulary loaded for {checkpoint_name}: {len(vocab)} tokens")
+        return vocab
+
+    if os.path.exists(legacy_vocab_path):
+        vocab.load(legacy_vocab_path)
+        logger.warning(
+            f"Model-specific vocab missing for {checkpoint_name}, fallback to legacy vocab.json ({len(vocab)} tokens)."
+        )
+        return vocab
+
+    logger.warning(f"No vocabulary found for {checkpoint_name}.")
+    return None
+
+
 def eval_rnn_model(model_class, model_name, checkpoint_name, test_df, vocab, batch_size=64):
     """Evaluate an RNN model checkpoint."""
     ckpt_path = os.path.join(config.CHECKPOINT_DIR, f"{checkpoint_name}_best.pt")
@@ -100,15 +123,6 @@ def main():
     config.ensure_dirs()
     test_df = pd.read_csv(os.path.join(config.DATA_SPLITS_DIR, "test.csv"))
 
-    # Load vocabulary for RNN
-    vocab = Vocabulary()
-    vocab_path = os.path.join(config.DATA_PROCESSED_DIR, "vocab.json")
-    if os.path.exists(vocab_path):
-        vocab.load(vocab_path)
-    else:
-        logger.warning("Vocabulary file not found. Please train an RNN model first.")
-        return
-
     all_results = []
 
     # RNN models
@@ -119,18 +133,27 @@ def main():
         (BiLSTMAttention, "bilstm_attention_undersample_ce", "bilstm_attention_undersample_ce"),
     ]
     for model_class, name, ckpt in rnn_configs:
+        vocab = load_rnn_vocab(ckpt)
+        if vocab is None:
+            continue
         result = eval_rnn_model(model_class, name, ckpt, test_df, vocab)
         if result:
             all_results.append(result)
 
-    # Transformer models
+    # Transformer models (all finetune x imbalance combinations)
     trans_configs = [
+        (DistilBertClassifier, "distilbert_freeze_weighted_ce", "distilbert_freeze_weighted_ce", config.DISTILBERT_MODEL_NAME),
+        (DistilBertClassifier, "distilbert_freeze_undersample_ce", "distilbert_freeze_undersample_ce", config.DISTILBERT_MODEL_NAME),
         (DistilBertClassifier, "distilbert_full_weighted_ce", "distilbert_full_weighted_ce", config.DISTILBERT_MODEL_NAME),
         (DistilBertClassifier, "distilbert_full_undersample_ce", "distilbert_full_undersample_ce", config.DISTILBERT_MODEL_NAME),
-        (DistilBertClassifier, "distilbert_freeze_weighted_ce", "distilbert_freeze_weighted_ce", config.DISTILBERT_MODEL_NAME),
         (DistilBertClassifier, "distilbert_llrd_weighted_ce", "distilbert_llrd_weighted_ce", config.DISTILBERT_MODEL_NAME),
+        (DistilBertClassifier, "distilbert_llrd_undersample_ce", "distilbert_llrd_undersample_ce", config.DISTILBERT_MODEL_NAME),
+        (BertClassifier, "bert_freeze_weighted_ce", "bert_freeze_weighted_ce", config.BERT_MODEL_NAME),
+        (BertClassifier, "bert_freeze_undersample_ce", "bert_freeze_undersample_ce", config.BERT_MODEL_NAME),
         (BertClassifier, "bert_full_weighted_ce", "bert_full_weighted_ce", config.BERT_MODEL_NAME),
         (BertClassifier, "bert_full_undersample_ce", "bert_full_undersample_ce", config.BERT_MODEL_NAME),
+        (BertClassifier, "bert_llrd_weighted_ce", "bert_llrd_weighted_ce", config.BERT_MODEL_NAME),
+        (BertClassifier, "bert_llrd_undersample_ce", "bert_llrd_undersample_ce", config.BERT_MODEL_NAME),
     ]
     for model_class, name, ckpt, tok_name in trans_configs:
         result = eval_transformer_model(model_class, name, ckpt, test_df, tok_name)

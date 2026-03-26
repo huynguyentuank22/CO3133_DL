@@ -43,14 +43,20 @@ def main():
         train_df = random_undersample(train_df)
         log_class_distribution(train_df["label"].tolist(), "train_undersampled")
 
+    model_name = f"bilstm_attention_{args.imbalance}"
+    vocab_dir = os.path.join(config.DATA_PROCESSED_DIR, "vocabs")
+    os.makedirs(vocab_dir, exist_ok=True)
+    vocab_path = os.path.join(vocab_dir, f"{model_name}_vocab.json")
+
     # Build/load vocabulary
     vocab = Vocabulary()
-    vocab_path = os.path.join(config.DATA_PROCESSED_DIR, "vocab.json")
     if os.path.exists(vocab_path):
         vocab.load(vocab_path)
+        logger.info(f"Vocabulary loaded: {vocab_path} ({len(vocab)} tokens)")
     else:
         vocab.build_from_texts(train_df["full_text"].tolist())
         vocab.save(vocab_path)
+        logger.info(f"Vocabulary saved: {vocab_path} ({len(vocab)} tokens)")
 
     train_ds = RNNDataset(train_df["full_text"].tolist(), train_df["label"].tolist(), vocab)
     val_ds = RNNDataset(val_df["full_text"].tolist(), val_df["label"].tolist(), vocab)
@@ -61,7 +67,6 @@ def main():
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr)
     criterion = get_loss_function(args.imbalance, train_df["label"].tolist(), config.DEVICE)
 
-    model_name = f"bilstm_attention_{args.imbalance}"
     trainer = Trainer(
         model, optimizer, criterion,
         model_type="rnn", model_name=model_name,
