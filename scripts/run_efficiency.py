@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 
 from src import config
 from src.utils import set_seed, get_logger, load_checkpoint
-from src.data_utils import Vocabulary, get_transformer_tokenizer
+from src.data_utils import get_transformer_tokenizer, load_rnn_vocab
 from src.datasets import RNNDataset, TransformerDataset
 from src.rnn_models import BiLSTM, BiLSTMAttention
 from src.transformer_models import DistilBertClassifier, BertClassifier
@@ -29,12 +29,6 @@ def main():
     test_df = pd.read_csv(os.path.join(config.DATA_SPLITS_DIR, "test.csv"))
     all_stats = []
 
-    # Load vocabulary
-    vocab = Vocabulary()
-    vocab_path = os.path.join(config.DATA_PROCESSED_DIR, "vocab.json")
-    if os.path.exists(vocab_path):
-        vocab.load(vocab_path)
-
     # RNN models
     for model_class, name, ckpt_name in [
         (BiLSTM, "BiLSTM", "bilstm_weighted_ce"),
@@ -43,8 +37,18 @@ def main():
         ckpt_path = os.path.join(config.CHECKPOINT_DIR, f"{ckpt_name}_best.pt")
         if not os.path.exists(ckpt_path):
             continue
+
+        vocab, _ = load_rnn_vocab(ckpt_name)
+        if vocab is None:
+            logger.warning(f"Skipping {name}: no matching vocabulary for {ckpt_name}")
+            continue
+
         model = model_class(vocab_size=len(vocab))
-        load_checkpoint(ckpt_path, model)
+        try:
+            load_checkpoint(ckpt_path, model)
+        except RuntimeError as e:
+            logger.error(f"Skipping {name}: checkpoint-vocab mismatch for {ckpt_name}: {e}")
+            continue
         model.to(config.DEVICE)
 
         test_ds = RNNDataset(test_df["full_text"].tolist(), test_df["label"].tolist(), vocab)

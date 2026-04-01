@@ -118,6 +118,14 @@ def generate_error_report(confusion_pairs, error_categories, comparison_df=None)
 
     if comparison_df is not None:
         lines.append("\n## Error Comparison: Weighted CE vs Undersample CE\n")
-        lines.append(comparison_df.to_markdown(index=False))
+        try:
+            lines.append(comparison_df.to_markdown(index=False))
+        except Exception:
+            # Fallback when optional dependency `tabulate` is unavailable.
+            cols = list(comparison_df.columns)
+            lines.append("| " + " | ".join(str(c) for c in cols) + " |")
+            lines.append("|" + "|".join(["---"] * len(cols)) + "|")
+            for _, row in comparison_df.iterrows():
+                lines.append("| " + " | ".join(str(row[c]) for c in cols) + " |")
 
     return "\n".join(lines)

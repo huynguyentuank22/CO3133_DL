@@ -15,7 +15,6 @@
 - **Ensemble**: Weighted probability averaging (RNN + Transformer)
 - **Demo**: Streamlit web app
 
-![alt text](image.png)
 
 ## Project Structure
 

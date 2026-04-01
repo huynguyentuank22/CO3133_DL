@@ -11,7 +11,7 @@ import numpy as np
 import torch
 from src import config
 from src.utils import set_seed, get_logger, load_checkpoint
-from src.data_utils import Vocabulary, get_transformer_tokenizer
+from src.data_utils import get_transformer_tokenizer, load_rnn_vocab
 from src.rnn_models import BiLSTMAttention
 from src.transformer_models import DistilBertClassifier
 from src.infer import predict_single_rnn_attention, predict_single_transformer
@@ -32,13 +32,11 @@ def main():
     os.makedirs(xai_dir, exist_ok=True)
 
     # â”€â”€â”€ BiLSTM + Attention XAI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    vocab = Vocabulary()
-    vocab_path = os.path.join(config.DATA_PROCESSED_DIR, "vocab.json")
+    vocab, _ = load_rnn_vocab("bilstm_attention_weighted_ce")
     rnn_ckpt = os.path.join(config.CHECKPOINT_DIR, "bilstm_attention_weighted_ce_best.pt")
 
-    rnn_available = os.path.exists(vocab_path) and os.path.exists(rnn_ckpt)
+    rnn_available = (vocab is not None) and os.path.exists(rnn_ckpt)
     if rnn_available:
-        vocab.load(vocab_path)
         rnn_model = BiLSTMAttention(vocab_size=len(vocab))
         load_checkpoint(rnn_ckpt, rnn_model)
         rnn_model.to(config.DEVICE)

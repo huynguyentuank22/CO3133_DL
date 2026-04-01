@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 
 from src import config
 from src.utils import set_seed, get_logger, load_checkpoint
-from src.data_utils import Vocabulary, get_transformer_tokenizer
+from src.data_utils import get_transformer_tokenizer, load_rnn_vocab
 from src.datasets import RNNDataset, TransformerDataset
 from src.rnn_models import BiLSTMAttention
 from src.transformer_models import DistilBertClassifier
@@ -41,13 +41,10 @@ def main():
     results = []
 
     # BiLSTM+Attention
-    vocab = Vocabulary()
-    vocab_path = os.path.join(config.DATA_PROCESSED_DIR, "vocab.json")
-    if os.path.exists(vocab_path):
-        vocab.load(vocab_path)
-
-    ckpt = os.path.join(config.CHECKPOINT_DIR, "bilstm_attention_weighted_ce_best.pt")
-    if os.path.exists(ckpt):
+    ckpt_name = "bilstm_attention_weighted_ce"
+    vocab, _ = load_rnn_vocab(ckpt_name)
+    ckpt = os.path.join(config.CHECKPOINT_DIR, f"{ckpt_name}_best.pt")
+    if vocab is not None and os.path.exists(ckpt):
         model = BiLSTMAttention(vocab_size=len(vocab))
         load_checkpoint(ckpt, model)
         model.to(config.DEVICE)

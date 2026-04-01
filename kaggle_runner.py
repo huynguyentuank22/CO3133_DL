@@ -17,6 +17,7 @@ Cach dung voi Kaggle CLI (chay tu thu muc project local):
 import os
 import sys
 import subprocess
+import importlib
 
 # --- Config -------------------------------------------------------------------
 GITHUB_REPO    = "https://github.com/huynguyentuank22/CO3133_DL.git"
@@ -32,6 +33,55 @@ def run(cmd, cwd=None):
     if result.returncode != 0:
         raise RuntimeError(f"Command failed (exit {result.returncode}): {cmd}")
 
+
+def _get_secret_value(name, default=None):
+    """Lay secret tu env truoc, sau do den Kaggle Secrets."""
+    value = os.getenv(name)
+    if value:
+        return value
+
+    try:
+        kaggle_secrets = importlib.import_module("kaggle_secrets")
+        client = kaggle_secrets.UserSecretsClient()
+        value = client.get_secret(name)
+        if value:
+            return value
+    except Exception:
+        pass
+    return default
+
+
+def setup_wandb_env(repo_dir):
+    """Tao file .env runtime de cac train script tu bat W&B."""
+    # Ho tro ca WANDB_API_KEY (chuan) va WANDB (legacy)
+    wandb_api_key = _get_secret_value("WANDB_API_KEY") or _get_secret_value("WANDB")
+    wandb_project = _get_secret_value("WANDB_PROJECT", "co3133_dl")
+    wandb_entity = _get_secret_value("WANDB_ENTITY")
+
+    if not wandb_api_key:
+        print("[WARN] Khong tim thay WANDB_API_KEY/WANDB. Se train khong log len W&B.")
+        return
+
+    # Set vao env hien tai de dung ngay trong process
+    os.environ["WANDB_API_KEY"] = wandb_api_key
+    os.environ["WANDB_PROJECT"] = wandb_project
+    if wandb_entity:
+        os.environ["WANDB_ENTITY"] = wandb_entity
+
+    # Tao .env trong repo de cac script co the auto-doc
+    dotenv_path = os.path.join(repo_dir, ".env")
+    lines = [
+        f"WANDB_API_KEY={wandb_api_key}",
+        f"WANDB_PROJECT={wandb_project}",
+    ]
+    if wandb_entity:
+        lines.append(f"WANDB_ENTITY={wandb_entity}")
+
+    with open(dotenv_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
+
+    print(f"[INFO] Da tao .env runtime tai: {dotenv_path}")
+
 # --- Step 1: Clone repo -------------------------------------------------------
 if os.path.exists(REPO_DIR):
     print(f"[INFO] Repo da ton tai tai {REPO_DIR}, pull latest...")
@@ -44,6 +94,10 @@ else:
 sys.path.insert(0, REPO_DIR)
 os.chdir(REPO_DIR)
 print(f"[INFO] Working directory: {os.getcwd()}")
+
+# --- Step 2.5: Setup W&B .env tu Kaggle Secrets/env -------------------------
+# Tren Kaggle, them secrets: WANDB_API_KEY, WANDB_PROJECT, WANDB_ENTITY
+setup_wandb_env(REPO_DIR)
 
 # --- Step 2: Cai dependencies con thieu --------------------------------------
 # Kaggle da co san torch, transformers, sklearn, pandas, numpy, matplotlib, seaborn, tqdm

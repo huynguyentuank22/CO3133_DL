@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 
 from src import config
 from src.utils import set_seed, load_checkpoint
-from src.data_utils import Vocabulary, get_transformer_tokenizer
+from src.data_utils import get_transformer_tokenizer, load_rnn_vocab, resolve_rnn_vocab_path
 from src.rnn_models import BiLSTMAttention
 from src.transformer_models import DistilBertClassifier, BertClassifier
 from src.infer import (
@@ -46,6 +46,10 @@ MODEL_OPTIONS = {
 available_models = {}
 for display_name, (model_type, ckpt_name) in MODEL_OPTIONS.items():
     ckpt_path = os.path.join(config.CHECKPOINT_DIR, f"{ckpt_name}_best.pt")
+    if not os.path.exists(ckpt_path):
+        continue
+    if model_type == "rnn" and resolve_rnn_vocab_path(ckpt_name) is None:
+        continue
     if os.path.exists(ckpt_path):
         available_models[display_name] = (model_type, ckpt_name)
 
@@ -79,9 +83,9 @@ def load_model(model_type, ckpt_name):
     ckpt_path = os.path.join(config.CHECKPOINT_DIR, f"{ckpt_name}_best.pt")
 
     if model_type == "rnn":
-        vocab = Vocabulary()
-        vocab_path = os.path.join(config.DATA_PROCESSED_DIR, "vocab.json")
-        vocab.load(vocab_path)
+        vocab, vocab_path = load_rnn_vocab(ckpt_name)
+        if vocab is None:
+            raise FileNotFoundError(f"No vocabulary found for {ckpt_name}")
         model = BiLSTMAttention(vocab_size=len(vocab))
         load_checkpoint(ckpt_path, model)
         model.to(config.DEVICE)

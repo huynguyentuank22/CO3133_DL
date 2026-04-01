@@ -97,6 +97,11 @@ def main():
     # Build vocab from original train
     vocab = Vocabulary()
     vocab.build_from_texts(train_df_orig["full_text"].tolist())
+    vocab_dir = os.path.join(config.DATA_PROCESSED_DIR, "vocabs")
+    os.makedirs(vocab_dir, exist_ok=True)
+    vocab.save(os.path.join(vocab_dir, "bilstm_attention_weighted_ce_vocab.json"))
+    vocab.save(os.path.join(vocab_dir, "bilstm_attention_undersample_ce_vocab.json"))
+    # Keep legacy path for backward compatibility with old scripts.
     vocab.save(os.path.join(config.DATA_PROCESSED_DIR, "vocab.json"))
 
     results = []

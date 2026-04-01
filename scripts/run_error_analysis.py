@@ -12,7 +12,7 @@ import torch
 from torch.utils.data import DataLoader
 from src import config
 from src.utils import set_seed, get_logger, load_checkpoint
-from src.data_utils import Vocabulary, get_transformer_tokenizer
+from src.data_utils import get_transformer_tokenizer, load_rnn_vocab
 from src.datasets import RNNDataset, TransformerDataset
 from src.rnn_models import BiLSTMAttention
 from src.transformer_models import DistilBertClassifier
@@ -44,11 +44,6 @@ def main():
     results = {}
 
     # â”€â”€â”€ BiLSTM+Attention Analysis â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    vocab = Vocabulary()
-    vocab_path = os.path.join(config.DATA_PROCESSED_DIR, "vocab.json")
-    if os.path.exists(vocab_path):
-        vocab.load(vocab_path)
-
     for strategy in ["weighted_ce", "undersample_ce"]:
         ckpt_name = f"bilstm_attention_{strategy}"
         ckpt_path = os.path.join(config.CHECKPOINT_DIR, f"{ckpt_name}_best.pt")
@@ -56,8 +51,17 @@ def main():
             logger.warning(f"Checkpoint not found: {ckpt_path}")
             continue
 
+        vocab, _ = load_rnn_vocab(ckpt_name)
+        if vocab is None:
+            logger.warning(f"Skipping {ckpt_name}: no matching vocabulary")
+            continue
+
         model = BiLSTMAttention(vocab_size=len(vocab))
-        load_checkpoint(ckpt_path, model)
+        try:
+            load_checkpoint(ckpt_path, model)
+        except RuntimeError as e:
+            logger.error(f"Failed to load {ckpt_name} with current vocab ({len(vocab)} tokens): {e}")
+            continue
         model.to(config.DEVICE)
 
         test_ds = RNNDataset(test_df["full_text"].tolist(), test_df["label"].tolist(), vocab)

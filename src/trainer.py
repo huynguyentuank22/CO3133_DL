@@ -33,7 +33,8 @@ class Trainer:
     def __init__(self, model, optimizer, criterion, device=config.DEVICE,
                  model_type: str = "rnn", model_name: str = "model",
                  scheduler=None, grad_clip: float | None = None,
-                 patience: int = config.EARLY_STOPPING_PATIENCE):
+                 patience: int = config.EARLY_STOPPING_PATIENCE,
+                 use_wandb: bool = False, wandb_run=None):
         self.model = model.to(device)
         self.optimizer = optimizer
         self.criterion = criterion
@@ -45,8 +46,17 @@ class Trainer:
         self.patience = patience
         self.best_metric = -1.0
         self.epochs_no_improve = 0
+        self.use_wandb = use_wandb
+        self.wandb_run = wandb_run
         self.history = {"train_loss": [], "val_loss": [], "val_accuracy": [],
                         "val_macro_f1": []}
+
+    def _get_current_lr(self):
+        if self.optimizer is None:
+            return None
+        if not self.optimizer.param_groups:
+            return None
+        return self.optimizer.param_groups[0].get("lr")
 
     def _train_epoch_rnn(self, dataloader: DataLoader) -> float:
         self.model.train()
@@ -160,11 +170,43 @@ class Trainer:
                 self.epochs_no_improve += 1
                 if self.epochs_no_improve >= self.patience:
                     logger.info(f"  Early stopping triggered after {epoch} epochs")
+                    if self.use_wandb and self.wandb_run is not None:
+                        self.wandb_run.log(
+                            {
+                                "epoch": epoch,
+                                "train_loss": train_loss,
+                                "val_loss": val_loss,
+                                "val_accuracy": val_metrics["accuracy"],
+                                "val_macro_f1": val_metrics["macro_f1"],
+                                "best_val_macro_f1": self.best_metric,
+                                "learning_rate": self._get_current_lr(),
+                            },
+                            step=epoch,
+                        )
                     break
+
+            if self.use_wandb and self.wandb_run is not None:
+                self.wandb_run.log(
+                    {
+                        "epoch": epoch,
+                        "train_loss": train_loss,
+                        "val_loss": val_loss,
+                        "val_accuracy": val_metrics["accuracy"],
+                        "val_macro_f1": val_metrics["macro_f1"],
+                        "best_val_macro_f1": self.best_metric,
+                        "learning_rate": self._get_current_lr(),
+                    },
+                    step=epoch,
+                )
 
         train_time = time.time() - train_start
         self.history["train_time_sec"] = train_time
         logger.info(f"Training complete in {train_time:.1f}s. Best Macro-F1: {self.best_metric:.4f}")
+
+        if self.use_wandb and self.wandb_run is not None:
+            self.wandb_run.summary["best_val_macro_f1"] = self.best_metric
+            self.wandb_run.summary["train_time_sec"] = train_time
+
         return self.history
 
     def evaluate(self, dataloader: DataLoader):

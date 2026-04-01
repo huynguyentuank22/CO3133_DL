@@ -81,6 +81,51 @@ class Vocabulary:
         logger.info(f"Vocabulary loaded: {len(self.word2idx)} tokens")
 
 
+def resolve_rnn_vocab_path(checkpoint_name: str) -> str | None:
+    """Resolve vocabulary file path for an RNN checkpoint.
+
+    Priority:
+    1) data/processed/vocabs/{checkpoint_name}_vocab.json
+    2) data/processed/vocab.json (legacy)
+    """
+    vocab_dir = os.path.join(config.DATA_PROCESSED_DIR, "vocabs")
+    specific_vocab_path = os.path.join(vocab_dir, f"{checkpoint_name}_vocab.json")
+    legacy_vocab_path = os.path.join(config.DATA_PROCESSED_DIR, "vocab.json")
+
+    if os.path.exists(specific_vocab_path):
+        return specific_vocab_path
+    if os.path.exists(legacy_vocab_path):
+        return legacy_vocab_path
+    return None
+
+
+def load_rnn_vocab(checkpoint_name: str):
+    """Load vocab for a specific RNN checkpoint with legacy fallback.
+
+    Returns:
+        (vocab, path) if found, otherwise (None, None)
+    """
+    vocab_path = resolve_rnn_vocab_path(checkpoint_name)
+    if vocab_path is None:
+        logger.warning(f"No vocabulary found for {checkpoint_name}")
+        return None, None
+
+    vocab = Vocabulary()
+    vocab.load(vocab_path)
+
+    specific_vocab_path = os.path.join(
+        config.DATA_PROCESSED_DIR, "vocabs", f"{checkpoint_name}_vocab.json"
+    )
+    if os.path.normcase(vocab_path) == os.path.normcase(specific_vocab_path):
+        logger.info(f"Vocabulary loaded for {checkpoint_name}: {vocab_path} ({len(vocab)} tokens)")
+    else:
+        logger.warning(
+            f"Model-specific vocab missing for {checkpoint_name}, fallback to legacy vocab: {vocab_path} ({len(vocab)} tokens)"
+        )
+
+    return vocab, vocab_path
+
+
 # ─── Transformer Tokenizer ───────────────────────────────────────────────────
 
 def get_transformer_tokenizer(model_name: str):

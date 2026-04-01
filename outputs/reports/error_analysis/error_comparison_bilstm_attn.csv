@@ -1,0 +1,6 @@
+rating,total_samples,errors_weighted_ce,error_rate_weighted_ce,errors_undersample_ce,error_rate_undersample_ce
+1,123,56,0.4553,65,0.5285
+2,232,206,0.8879,168,0.7241
+3,424,174,0.4104,310,0.7311
+4,736,382,0.519,553,0.7514
+5,1880,455,0.242,344,0.183
