@@ -65,8 +65,12 @@ RUN_ERROR_ANALYSIS = False
 ERROR_ANALYSIS_ONLY = True
 
 # Che do chay Robustness voi checkpoints da train san.
-RUN_ROBUSTNESS = True
+RUN_ROBUSTNESS = False
 ROBUSTNESS_ONLY = True
+
+# Che do chay Ensemble voi checkpoints da train san.
+RUN_ENSEMBLE = True
+ENSEMBLE_ONLY = True
 
 # Bat/tat cac nhom sweep
 ENABLE_RNN_SWEEP = False
@@ -392,8 +396,8 @@ if not os.path.exists(splits_link):
 else:
     print(f"[INFO] data/splits da ton tai")
 
-# --- Step 3b: Nap checkpoints/vocabs tu Kaggle input (phuc vu evaluate/XAI/error analysis/robustness) --
-if RUN_EVALUATE_ALL or RUN_XAI or RUN_ERROR_ANALYSIS or RUN_ROBUSTNESS:
+# --- Step 3b: Nap checkpoints/vocabs tu Kaggle input (phuc vu evaluate/XAI/error analysis/robustness/ensemble) --
+if RUN_EVALUATE_ALL or RUN_XAI or RUN_ERROR_ANALYSIS or RUN_ROBUSTNESS or RUN_ENSEMBLE:
     _prepare_checkpoints_for_evaluation(REPO_DIR)
     _prepare_vocabs_for_evaluation(REPO_DIR)
 
@@ -431,6 +435,12 @@ if RUN_ROBUSTNESS and ROBUSTNESS_ONLY:
     print("\n[INFO] Chay run_robustness voi checkpoints co san tren Kaggle input ...")
     run("python scripts/run_robustness.py")
     print("\n[DONE] run_robustness hoan thanh!")
+    sys.exit(0)
+
+if RUN_ENSEMBLE and ENSEMBLE_ONLY:
+    print("\n[INFO] Chay run_ensemble voi checkpoints co san tren Kaggle input ...")
+    run("python scripts/run_ensemble.py")
+    print("\n[DONE] run_ensemble hoan thanh!")
     sys.exit(0)
 
 # --- Step 5: Training ---------------------------------------------------------
@@ -572,6 +582,9 @@ if RUN_ERROR_ANALYSIS and not ERROR_ANALYSIS_ONLY:
 
 if RUN_ROBUSTNESS and not ROBUSTNESS_ONLY:
     run("python scripts/run_robustness.py")
+
+if RUN_ENSEMBLE and not ENSEMBLE_ONLY:
+    run("python scripts/run_ensemble.py")
 
 # --- (Tuy chon) Post-training analysis ----------------------------------------
 # run("python scripts/train_bilstm.py --imbalance undersample_ce --lr 1e-3 --batch_size 64 --epochs 15")
