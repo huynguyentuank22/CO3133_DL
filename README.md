@@ -81,7 +81,7 @@ Source: `outputs/tables/model_comparison.csv`
 
 | model_name | accuracy | macro_f1 | weighted_f1 | precision | recall | model_size_mb | inference_time_per_sample_ms |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| **bert_llrd_weighted_ce** | **0.6825** | **0.5646** | **0.6891** | **0.5636** | **0.5690** | **417.66** | **6.7244** |
+| **bert_llrd_weighted_ce** | **0.6825** | **0.5646** | **0.6891** | **0.5636** | **0.5690** | **417.66** | **6.7244** |    
 | bert_full_undersample_ce | 0.6563 | 0.5490 | 0.6671 | 0.5296 | 0.5790 | 417.66 | 6.7301 |
 | bert_full_weighted_ce | 0.6772 | 0.5471 | 0.6851 | 0.5632 | 0.5449 | 417.66 | 6.7322 |
 | distilbert_full_weighted_ce | 0.6707 | 0.5421 | 0.6772 | 0.5352 | 0.5507 | 253.17 | 3.3773 |

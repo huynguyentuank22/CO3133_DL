@@ -65,6 +65,110 @@ def get_attention_explanation(model, text, vocab, device=config.DEVICE,
     }
 
 
+def captum_integrated_gradients_rnn(model, input_ids, target_class,
+                                    device=config.DEVICE, n_steps=50):
+    """Compute Integrated Gradients attribution for RNN embedding inputs."""
+    try:
+        from captum.attr import LayerIntegratedGradients
+    except ImportError:
+        logger.warning("Captum not installed. Falling back to simple gradient for RNN.")
+        return _simple_gradient_attribution_rnn(model, input_ids, target_class, device)
+
+    model.eval()
+    model.zero_grad()
+
+    def forward_func(input_ids):
+        return model(input_ids)
+
+    if not hasattr(model, "embedding"):
+        raise ValueError("RNN model does not expose an embedding layer")
+
+    lig = LayerIntegratedGradients(forward_func, model.embedding)
+    input_ids = input_ids.to(device)
+    baseline = torch.full_like(input_ids, fill_value=getattr(model, "pad_idx", 0)).to(device)
+
+    attributions, _ = lig.attribute(
+        inputs=input_ids,
+        baselines=baseline,
+        target=target_class,
+        n_steps=n_steps,
+        return_convergence_delta=True,
+    )
+
+    attr_scores = attributions.sum(dim=-1).squeeze(0).cpu().detach().numpy()
+    return attr_scores
+
+
+def _simple_gradient_attribution_rnn(model, input_ids, target_class, device):
+    """Fallback saliency for RNN models when Captum is unavailable."""
+    model.eval()
+    model.zero_grad()
+
+    if not hasattr(model, "embedding"):
+        return np.zeros(input_ids.shape[1])
+
+    input_ids = input_ids.to(device)
+    emb_out = model.embedding(input_ids)
+    emb_out.retain_grad()
+
+    embedded = model.dropout(emb_out) if hasattr(model, "dropout") else emb_out
+    lstm_out, (hidden, _) = model.lstm(embedded)
+
+    if hasattr(model, "attention"):
+        pad_idx = getattr(model, "pad_idx", 0)
+        mask = (input_ids != pad_idx).float()
+        context, _ = model.attention(lstm_out, mask)
+        features = model.dropout(context) if hasattr(model, "dropout") else context
+    else:
+        hidden_fwd = hidden[-2]
+        hidden_bwd = hidden[-1]
+        hidden_cat = torch.cat([hidden_fwd, hidden_bwd], dim=1)
+        features = model.dropout(hidden_cat) if hasattr(model, "dropout") else hidden_cat
+
+    logits = model.fc(features)
+    loss = logits[0, target_class]
+    loss.backward()
+
+    if emb_out.grad is None:
+        return np.zeros(input_ids.shape[1])
+    return emb_out.grad.sum(dim=-1).squeeze(0).cpu().detach().numpy()
+
+
+def get_rnn_ig_explanation(model, text, vocab, device=config.DEVICE,
+                           max_length=config.RNN_MAX_LENGTH):
+    """Get IG-based token attribution for an RNN model."""
+    model.eval()
+    ids = vocab.encode(text, max_length)
+    input_ids = torch.tensor([ids], dtype=torch.long)
+
+    with torch.no_grad():
+        logits = model(input_ids.to(device))
+    probs = F.softmax(logits, dim=1).cpu().numpy()[0]
+    pred = int(np.argmax(probs))
+
+    attr_scores = captum_integrated_gradients_rnn(model, input_ids, pred, device)
+
+    tokens = simple_tokenize(text)[:max_length]
+    scores = attr_scores[:len(tokens)]
+    abs_scores = np.abs(scores)
+    if abs_scores.size > 0 and abs_scores.max() > 1e-8:
+        norm_scores = abs_scores / abs_scores.max()
+    else:
+        norm_scores = np.zeros_like(abs_scores)
+
+    top_k = min(10, len(tokens))
+    top_indices = np.argsort(norm_scores)[-top_k:][::-1] if top_k > 0 else []
+    top_tokens = [(tokens[i], float(norm_scores[i])) for i in top_indices]
+
+    return {
+        "pred": pred,
+        "probs": probs,
+        "tokens": tokens,
+        "scores": norm_scores,
+        "top_tokens": top_tokens,
+    }
+
+
 # ─── Captum Attribution (Transformer) ────────────────────────────────────────
 
 def captum_integrated_gradients(model, input_ids, attention_mask, target_class,

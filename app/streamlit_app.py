@@ -7,6 +7,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
 import streamlit as st
+import streamlit.components.v1 as components
 import torch
 import numpy as np
 import pandas as pd
@@ -15,11 +16,12 @@ import matplotlib.pyplot as plt
 from src import config
 from src.utils import set_seed, load_checkpoint
 from src.data_utils import get_transformer_tokenizer, load_rnn_vocab, resolve_rnn_vocab_path
-from src.rnn_models import BiLSTMAttention
+from src.rnn_models import BiLSTM, BiLSTMAttention
 from src.transformer_models import DistilBertClassifier, BertClassifier
 from src.infer import (
-    predict_single_rnn_attention, predict_single_transformer,
+    predict_single_rnn, predict_batch_proba_rnn, predict_single_transformer,
 )
+from src.xai_utils import get_rnn_ig_explanation, get_transformer_explanation, lime_explain
 
 set_seed()
 config.ensure_dirs()
@@ -27,38 +29,35 @@ config.ensure_dirs()
 # ─── Page Config ──────────────────────────────────────────────────────────────
 st.set_page_config(page_title="Rating Predictor", page_icon="⭐", layout="wide")
 st.title("⭐ Review Rating Predictor")
-st.markdown("Predict ratings (1-5) from clothing reviews using multiple ML models.")
+st.markdown("Predict ratings (1-5) from clothing reviews using multiple models.")
 
 # ─── Sidebar ─────────────────────────────────────────────────────────────────
 st.sidebar.header("⚙️ Configuration")
 
 MODEL_OPTIONS = {
-    "BiLSTM + Attention (weighted_ce)": ("rnn", "bilstm_attention_weighted_ce"),
-    "BiLSTM + Attention (undersample_ce)": ("rnn", "bilstm_attention_undersample_ce"),
-    "DistilBERT (full, weighted_ce)": ("distilbert", "distilbert_full_weighted_ce"),
-    "DistilBERT (freeze, weighted_ce)": ("distilbert", "distilbert_freeze_weighted_ce"),
-    "DistilBERT (llrd, weighted_ce)": ("distilbert", "distilbert_llrd_weighted_ce"),
-    "BERT-base (full, weighted_ce)": ("bert", "bert_full_weighted_ce"),
-    "BERT-base (full, undersample_ce)": ("bert", "bert_full_undersample_ce"),
+    "BERT-base": ("bert", "bert_llrd_weighted_ce", "ig"),
+    "DistilBERT": ("distilbert", "distilbert_full_weighted_ce", "ig"),
+    "BiLSTM + Attention": ("bilstm_attn", "bilstm_attention_weighted_ce", "ig"),
+    "BiLSTM": ("bilstm", "bilstm_weighted_ce", "lime"),
 }
 
 # Filter to only available checkpoints
 available_models = {}
-for display_name, (model_type, ckpt_name) in MODEL_OPTIONS.items():
+for display_name, (model_type, ckpt_name, explain_method) in MODEL_OPTIONS.items():
     ckpt_path = os.path.join(config.CHECKPOINT_DIR, f"{ckpt_name}_best.pt")
     if not os.path.exists(ckpt_path):
         continue
-    if model_type == "rnn" and resolve_rnn_vocab_path(ckpt_name) is None:
+    if model_type in {"bilstm", "bilstm_attn"} and resolve_rnn_vocab_path(ckpt_name) is None:
         continue
     if os.path.exists(ckpt_path):
-        available_models[display_name] = (model_type, ckpt_name)
+        available_models[display_name] = (model_type, ckpt_name, explain_method)
 
 if not available_models:
     st.error("No model checkpoints found. Please train at least one model first.")
     st.stop()
 
 selected_model = st.sidebar.selectbox("Select Model", list(available_models.keys()))
-model_type, ckpt_name = available_models[selected_model]
+model_type, ckpt_name, explain_method = available_models[selected_model]
 
 # ─── Example Reviews ─────────────────────────────────────────────────────────
 st.sidebar.header("📝 Example Reviews")
@@ -82,7 +81,17 @@ selected_example = st.sidebar.selectbox("Or try an example:", ["(none)"] + list(
 def load_model(model_type, ckpt_name):
     ckpt_path = os.path.join(config.CHECKPOINT_DIR, f"{ckpt_name}_best.pt")
 
-    if model_type == "rnn":
+    if model_type == "bilstm":
+        vocab, vocab_path = load_rnn_vocab(ckpt_name)
+        if vocab is None:
+            raise FileNotFoundError(f"No vocabulary found for {ckpt_name}")
+        model = BiLSTM(vocab_size=len(vocab))
+        load_checkpoint(ckpt_path, model)
+        model.to(config.DEVICE)
+        model.eval()
+        return model, vocab, None
+
+    elif model_type == "bilstm_attn":
         vocab, vocab_path = load_rnn_vocab(ckpt_name)
         if vocab is None:
             raise FileNotFoundError(f"No vocabulary found for {ckpt_name}")
@@ -131,6 +140,7 @@ with col1:
 with col2:
     st.subheader("Model Info")
     st.info(f"**Model:** {selected_model}\n\n"
+            f"**Explain:** {explain_method.upper()}\n\n"
             f"**Device:** {config.DEVICE}")
 
 # ─── Prediction ───────────────────────────────────────────────────────────────
@@ -139,12 +149,10 @@ if predict_btn and review_text:
     full_text = f"{title} [SEP] {review_text}" if title else review_text
 
     with st.spinner("Predicting..."):
-        if model_type == "rnn":
-            pred, probs, tokens, weights = predict_single_rnn_attention(
-                model, full_text, vocab)
+        if model_type in {"bilstm", "bilstm_attn"}:
+            pred, probs = predict_single_rnn(model, full_text, vocab)
         else:
             pred, probs = predict_single_transformer(model, full_text, tokenizer)
-            tokens, weights = None, None
 
     predicted_rating = config.LABEL_MAP_INV[pred]
     confidence = float(probs[pred])
@@ -181,33 +189,103 @@ if predict_btn and review_text:
     st.pyplot(fig)
     plt.close()
 
-    # ─── Token Importance (Attention) ─────────────────────────────────────
-    if tokens is not None and weights is not None:
-        st.subheader("🔍 Token Importance (Attention)")
+    # ─── Explainability ─────────────────────────────────────────────────────
+    st.subheader("🔍 Explainability")
 
-        # Show top tokens
-        valid_len = min(len(tokens), len(weights))
-        tokens = tokens[:valid_len]
-        weights = weights[:valid_len]
+    if explain_method == "lime":
+        with st.spinner("Generating LIME explanation..."):
+            try:
+                def rnn_predict_fn(texts):
+                    prob_batch = predict_batch_proba_rnn(model, texts, vocab)
+                    prob_batch = np.nan_to_num(
+                        prob_batch,
+                        nan=1.0 / config.NUM_CLASSES,
+                        posinf=1.0 / config.NUM_CLASSES,
+                        neginf=0.0,
+                    )
+                    row_sums = prob_batch.sum(axis=1, keepdims=True)
+                    row_sums[row_sums <= 0] = 1.0
+                    return prob_batch / row_sums
 
-        top_k = min(15, valid_len)
-        top_idx = np.argsort(weights)[-top_k:][::-1]
+                lime_exp = lime_explain(rnn_predict_fn, full_text, num_features=8, num_samples=200)
+            except Exception as e:
+                lime_exp = None
+                st.warning(f"LIME explanation failed: {e}")
 
-        top_df = pd.DataFrame({
-            "Token": [tokens[i] for i in top_idx],
-            "Attention Weight": [f"{weights[i]:.4f}" for i in top_idx],
-        })
-        st.table(top_df)
+        if lime_exp is None:
+            st.info("LIME explanation is unavailable for this input.")
+        else:
+            try:
+                contributions = lime_exp.as_list(label=pred)
+            except Exception:
+                contributions = lime_exp.as_list()
 
-        # Highlighted text
-        w_norm = (weights - weights.min()) / (weights.max() - weights.min() + 1e-8)
-        highlighted = " ".join(
-            f'<span style="background-color:rgba(255,{int(255*(1-w))},0,{0.3+0.7*w});'
-            f'padding:2px 4px;border-radius:3px;">{tok}</span>'
-            for tok, w in zip(tokens, w_norm)
-        )
-        st.markdown(f"<div style='line-height:2;'>{highlighted}</div>",
-                    unsafe_allow_html=True)
+            if not contributions:
+                st.info("No token contributions returned by LIME.")
+            else:
+                contrib_df = pd.DataFrame(contributions, columns=["Token", "Contribution"])
+                contrib_df["Abs Contribution"] = contrib_df["Contribution"].abs()
+                contrib_df = contrib_df.sort_values("Abs Contribution", ascending=False)
+
+                pos_df = contrib_df[contrib_df["Contribution"] > 0].head(8)
+                neg_df = contrib_df[contrib_df["Contribution"] < 0].head(8)
+
+                c_pos, c_neg = st.columns(2)
+                with c_pos:
+                    st.markdown("**Positive toward predicted class**")
+                    st.table(pos_df[["Token", "Contribution"]] if not pos_df.empty else pd.DataFrame({"Token": [], "Contribution": []}))
+                with c_neg:
+                    st.markdown("**Negative toward predicted class**")
+                    st.table(neg_df[["Token", "Contribution"]] if not neg_df.empty else pd.DataFrame({"Token": [], "Contribution": []}))
+
+                with st.expander("Show full LIME HTML"):
+                    components.html(lime_exp.as_html(), height=620, scrolling=True)
+
+    else:
+        with st.spinner("Generating IG explanation..."):
+            try:
+                if model_type == "bilstm_attn":
+                    ig_exp = get_rnn_ig_explanation(model, full_text, vocab)
+                else:
+                    ig_exp = get_transformer_explanation(model, full_text, tokenizer)
+            except Exception as e:
+                ig_exp = None
+                st.warning(f"IG explanation failed: {e}")
+
+        if ig_exp is None:
+            st.info("IG explanation is unavailable for this input.")
+        else:
+            tokens = np.array(ig_exp["tokens"])
+            scores = np.array(ig_exp["scores"], dtype=float)
+
+            if tokens.size == 0 or scores.size == 0:
+                st.info("No token-level attribution available for this input.")
+            else:
+                valid_len = min(len(tokens), len(scores))
+                tokens = tokens[:valid_len]
+                scores = scores[:valid_len]
+
+                top_k = min(15, valid_len)
+                top_idx = np.argsort(scores)[-top_k:][::-1]
+
+                top_df = pd.DataFrame({
+                    "Token": [tokens[i] for i in top_idx],
+                    "IG Score": [f"{scores[i]:.4f}" for i in top_idx],
+                })
+                st.table(top_df)
+
+                s_min, s_max = scores.min(), scores.max()
+                if s_max - s_min > 1e-8:
+                    s_norm = (scores - s_min) / (s_max - s_min)
+                else:
+                    s_norm = np.zeros_like(scores)
+
+                highlighted = " ".join(
+                    f'<span style="background-color:rgba(255,{int(255*(1-s))},0,{0.3+0.7*s});'
+                    f'padding:2px 4px;border-radius:3px;">{tok}</span>'
+                    for tok, s in zip(tokens, s_norm)
+                )
+                st.markdown(f"<div style='line-height:2;'>{highlighted}</div>", unsafe_allow_html=True)
 
 elif predict_btn and not review_text:
     st.warning("Please enter a review text to predict.")

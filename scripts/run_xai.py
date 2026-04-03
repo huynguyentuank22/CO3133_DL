@@ -15,8 +15,8 @@ from src.rnn_models import BiLSTM, BiLSTMAttention
 from src.transformer_models import DistilBertClassifier, BertClassifier
 from src.infer import predict_batch_proba_rnn
 from src.xai_utils import (
-    get_attention_explanation, attention_highlight_html,
-    get_transformer_explanation, lime_explain, save_xai_html,
+    attention_highlight_html,
+    get_rnn_ig_explanation, get_transformer_explanation, lime_explain, save_xai_html,
 )
 
 logger = get_logger("run_xai", os.path.join(config.LOGS_DIR, "run_xai.log"))
@@ -33,9 +33,9 @@ BEST_MODELS = {
 }
 
 
-def run_attention_xai(model, vocab, test_df, output_path):
-    """Generate attention-based XAI HTML for BiLSTM+Attention."""
-    htmls = ["<h1>BiLSTM+Attention - XAI Results</h1>"]
+def run_rnn_ig_xai(model, vocab, test_df, model_title, output_path):
+    """Generate IG-based XAI HTML for an RNN model."""
+    htmls = [f"<h1>{model_title} - XAI Results (Integrated Gradients)</h1>"]
     correct_samples = []
     incorrect_samples = []
 
@@ -45,7 +45,7 @@ def run_attention_xai(model, vocab, test_df, output_path):
 
         text = row["full_text"]
         true_label = row["label"]
-        explanation = get_attention_explanation(model, text, vocab)
+        explanation = get_rnn_ig_explanation(model, text, vocab)
         pred = explanation["pred"]
         confidence = float(explanation["probs"][pred])
 
@@ -55,7 +55,7 @@ def run_attention_xai(model, vocab, test_df, output_path):
             "pred": config.LABEL_MAP_INV[pred],
             "confidence": confidence,
             "tokens": explanation["tokens"],
-            "weights": explanation["weights"],
+            "scores": explanation["scores"],
             "top_tokens": explanation["top_tokens"],
         }
 
@@ -67,7 +67,7 @@ def run_attention_xai(model, vocab, test_df, output_path):
     htmls.append("<h2>Correct Predictions</h2>")
     for s in correct_samples:
         h = attention_highlight_html(
-            s["tokens"], s["weights"], s["true"], s["pred"],
+            s["tokens"], s["scores"], s["true"], s["pred"],
             s["confidence"], text_id=str(s["idx"])
         )
         top_str = ", ".join([f"{t}({w:.3f})" for t, w in s["top_tokens"][:5]])
@@ -77,7 +77,7 @@ def run_attention_xai(model, vocab, test_df, output_path):
     htmls.append("<h2>Incorrect Predictions</h2>")
     for s in incorrect_samples:
         h = attention_highlight_html(
-            s["tokens"], s["weights"], s["true"], s["pred"],
+            s["tokens"], s["scores"], s["true"], s["pred"],
             s["confidence"], text_id=str(s["idx"])
         )
         top_str = ", ".join([f"{t}({w:.3f})" for t, w in s["top_tokens"][:5]])
@@ -256,7 +256,7 @@ def main():
     else:
         logger.warning(f"{bilstm_name} checkpoint or vocab not found, skipping")
 
-    # Best BiLSTM+Attention (attention + LIME)
+    # Best BiLSTM+Attention (IG + LIME)
     attn_name = BEST_MODELS["bilstm_attn"]
     attn_vocab, _ = load_rnn_vocab(attn_name)
     attn_ckpt = os.path.join(config.CHECKPOINT_DIR, f"{attn_name}_best.pt")
@@ -265,10 +265,11 @@ def main():
         load_checkpoint(attn_ckpt, attn_model)
         attn_model.to(config.DEVICE)
         logger.info(f"Loaded {attn_name} for XAI")
-        run_attention_xai(
+        run_rnn_ig_xai(
             attn_model,
             attn_vocab,
             test_df,
+            "BiLSTM+Attention (best)",
             os.path.join(xai_dir, "bilstm_attention_xai.html"),
         )
         run_lime_xai_for_rnn(
