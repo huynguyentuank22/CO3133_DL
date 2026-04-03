@@ -7,6 +7,7 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(project_root)
 
 import pandas as pd
+import numpy as np
 from src import config
 from src.utils import set_seed, get_logger, load_checkpoint
 from src.data_utils import get_transformer_tokenizer, load_rnn_vocab
@@ -19,6 +20,9 @@ from src.xai_utils import (
 )
 
 logger = get_logger("run_xai", os.path.join(config.LOGS_DIR, "run_xai.log"))
+
+LIME_TARGET_SAMPLES = 3
+LIME_MAX_CANDIDATES = 200
 
 # Hard-coded best checkpoints by group (based on current README summary).
 BEST_MODELS = {
@@ -148,22 +152,47 @@ def run_lime_xai_for_rnn(model, vocab, test_df, title, output_path):
     logger.info(f"Running LIME explanations for {title}...")
     htmls = [f"<h1>{title} - LIME Explanations</h1>"]
     skipped_samples = []
+    selected_samples = []
+    empty_perturbation_count = 0
 
     def rnn_predict_fn(texts):
+        nonlocal empty_perturbation_count
         empty_positions = [idx for idx, t in enumerate(texts) if not str(t).strip()]
+        safe_texts = list(texts)
         if empty_positions:
-            raise ValueError(
-                "LIME generated empty perturbation text "
-                f"at batch positions {empty_positions[:10]} "
-                f"(total={len(empty_positions)})."
+            empty_perturbation_count += len(empty_positions)
+            # Replace empty perturbations with a safe token so LIME run can continue.
+            for pos in empty_positions:
+                safe_texts[pos] = "unk"
+            logger.warning(
+                "[LIME-EMPTY] Empty perturbations detected for %s at batch positions %s (total=%d). "
+                "Replaced with fallback token.",
+                title,
+                empty_positions[:10],
+                len(empty_positions),
             )
-        return predict_batch_proba_rnn(model, texts, vocab)
 
-    for i in range(min(3, len(test_df))):
+        probs = predict_batch_proba_rnn(model, safe_texts, vocab)
+        probs = np.nan_to_num(
+            probs,
+            nan=1.0 / config.NUM_CLASSES,
+            posinf=1.0 / config.NUM_CLASSES,
+            neginf=0.0,
+        )
+        row_sums = probs.sum(axis=1, keepdims=True)
+        row_sums[row_sums <= 0] = 1.0
+        return probs / row_sums
+
+    candidate_limit = min(len(test_df), LIME_MAX_CANDIDATES)
+    for i in range(candidate_limit):
+        if len(selected_samples) >= LIME_TARGET_SAMPLES:
+            break
+
         text = test_df.iloc[i]["full_text"]
         try:
             explanation = lime_explain(rnn_predict_fn, text, num_features=8, num_samples=200)
             if explanation:
+                selected_samples.append(i)
                 htmls.append(f"<h3>Sample {i}</h3>{explanation.as_html()}<hr>")
         except Exception as e:
             preview = str(text).replace("\n", " ")[:140]
@@ -172,6 +201,21 @@ def run_lime_xai_for_rnn(model, vocab, test_df, title, output_path):
                 f"[LIME-SKIP] Sample {i} skipped for {title}. "
                 f"Reason: {e}. Text preview: {preview}"
             )
+
+    logger.info(
+        "LIME summary for %s: selected=%d, skipped=%d, empty_perturbations=%d",
+        title,
+        len(selected_samples),
+        len(skipped_samples),
+        empty_perturbation_count,
+    )
+
+    if selected_samples:
+        htmls.append("<h2>Selected Samples</h2>")
+        htmls.append(f"<p>{', '.join([str(s) for s in selected_samples])}</p>")
+    else:
+        htmls.append("<h2>Selected Samples</h2>")
+        htmls.append("<p>None</p>")
 
     if skipped_samples:
         htmls.append("<h2>Skipped Samples</h2>")
