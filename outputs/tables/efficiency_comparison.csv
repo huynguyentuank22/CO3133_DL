@@ -1,5 +1,0 @@
-model_name,num_parameters,model_size_mb,train_time_sec,total_inference_time_sec,total_samples,inference_time_per_sample_ms
-BiLSTM,3997701,15.25,0.0,3.7094,3395,1.0926
-BiLSTM+Attention,3998213,15.25,0.0,3.8116,3395,1.1227
-DistilBERT,66366725,253.17,0.0,60.1538,3395,17.7183
-BERT-base,109486085,417.66,0.0,139.0843,3395,40.9674

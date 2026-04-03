@@ -6,7 +6,9 @@ dist/
 build/
 .eggs/
 *.egg
-.env
+*.env
+*.env
+!example.env
 .venv/
 venv/
 env/
@@ -15,6 +17,8 @@ outputs/logs/
 data/processed/
 data/splits/
 data/raw/
+data/wandb-scerets/wandb.env
+data/wandb-scerets/.env
 *.pt
 *.bin
 *.h5

@@ -8,7 +8,7 @@
   "enable_gpu": "true",
   "enable_tpu": "false",
   "enable_internet": "true",
-  "dataset_sources": ["huy281204/clothing-reviews"],
+  "dataset_sources": ["huy281204/clothing-reviews", "huy281204/wandb-scerets", "huy281204/co3133-checkpoints", "huy281204/co3133-vocabs"],
   "competition_sources": [],
   "kernel_sources": [],
   "model_sources": []
