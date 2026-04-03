@@ -1,3 +1,6 @@
+### Weight & Bias
+https://api.wandb.ai/links/huy-nguyentuank22-ho-chi-minh-city-university-of-technology/igh06zwd
+
 | model_name | accuracy | macro_f1 | weighted_f1 | precision | recall | model_size_mb | inference_time_per_sample_ms |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | **bert_llrd_weighted_ce** | **0.6825** | **0.5646** | **0.6891** | **0.5636** | **0.5690** | **417.66** | **6.7244** |    

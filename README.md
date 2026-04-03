@@ -109,12 +109,12 @@ python scripts/run_augmentation.py     # With/without augmentation
 python scripts/run_robustness.py       # Clean vs noisy test set
 ```
 
-## Efficiency Comparison
+<!-- ## Efficiency Comparison
 
 ```bash
 python scripts/run_efficiency.py
 # → outputs/tables/efficiency_comparison.csv
-```
+``` -->
 
 ## Ensemble
 

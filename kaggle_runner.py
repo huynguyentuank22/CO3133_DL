@@ -57,8 +57,16 @@ RUN_EVALUATE_ALL = False
 EVALUATE_ONLY = True
 
 # Che do chay XAI voi checkpoints da train san.
-RUN_XAI = True
+RUN_XAI = False
 XAI_ONLY = True
+
+# Che do chay Error Analysis voi checkpoints da train san.
+RUN_ERROR_ANALYSIS = False
+ERROR_ANALYSIS_ONLY = True
+
+# Che do chay Robustness voi checkpoints da train san.
+RUN_ROBUSTNESS = True
+ROBUSTNESS_ONLY = True
 
 # Bat/tat cac nhom sweep
 ENABLE_RNN_SWEEP = False
@@ -384,8 +392,8 @@ if not os.path.exists(splits_link):
 else:
     print(f"[INFO] data/splits da ton tai")
 
-# --- Step 3b: Nap checkpoints/vocabs tu Kaggle input (phuc vu evaluate/XAI) --
-if RUN_EVALUATE_ALL or RUN_XAI:
+# --- Step 3b: Nap checkpoints/vocabs tu Kaggle input (phuc vu evaluate/XAI/error analysis/robustness) --
+if RUN_EVALUATE_ALL or RUN_XAI or RUN_ERROR_ANALYSIS or RUN_ROBUSTNESS:
     _prepare_checkpoints_for_evaluation(REPO_DIR)
     _prepare_vocabs_for_evaluation(REPO_DIR)
 
@@ -411,6 +419,18 @@ if RUN_XAI and XAI_ONLY:
     print("\n[INFO] Chay run_xai voi checkpoints co san tren Kaggle input ...")
     run("python scripts/run_xai.py")
     print("\n[DONE] run_xai hoan thanh!")
+    sys.exit(0)
+
+if RUN_ERROR_ANALYSIS and ERROR_ANALYSIS_ONLY:
+    print("\n[INFO] Chay run_error_analysis voi checkpoints co san tren Kaggle input ...")
+    run("python scripts/run_error_analysis.py")
+    print("\n[DONE] run_error_analysis hoan thanh!")
+    sys.exit(0)
+
+if RUN_ROBUSTNESS and ROBUSTNESS_ONLY:
+    print("\n[INFO] Chay run_robustness voi checkpoints co san tren Kaggle input ...")
+    run("python scripts/run_robustness.py")
+    print("\n[DONE] run_robustness hoan thanh!")
     sys.exit(0)
 
 # --- Step 5: Training ---------------------------------------------------------
@@ -546,6 +566,12 @@ if RUN_EVALUATE_ALL and not EVALUATE_ONLY:
 
 if RUN_XAI and not XAI_ONLY:
     run("python scripts/run_xai.py")
+
+if RUN_ERROR_ANALYSIS and not ERROR_ANALYSIS_ONLY:
+    run("python scripts/run_error_analysis.py")
+
+if RUN_ROBUSTNESS and not ROBUSTNESS_ONLY:
+    run("python scripts/run_robustness.py")
 
 # --- (Tuy chon) Post-training analysis ----------------------------------------
 # run("python scripts/train_bilstm.py --imbalance undersample_ce --lr 1e-3 --batch_size 64 --epochs 15")
