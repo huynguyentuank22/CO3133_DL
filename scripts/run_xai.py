@@ -45,7 +45,11 @@ def run_rnn_ig_xai(model, vocab, test_df, model_title, output_path):
 
         text = row["full_text"]
         true_label = row["label"]
-        explanation = get_rnn_ig_explanation(model, text, vocab)
+        try:
+            explanation = get_rnn_ig_explanation(model, text, vocab)
+        except Exception as e:
+            logger.warning(f"IG failed for sample {idx}: {e}")
+            continue
         pred = explanation["pred"]
         confidence = float(explanation["probs"][pred])
 

@@ -74,7 +74,17 @@ def captum_integrated_gradients_rnn(model, input_ids, target_class,
         logger.warning("Captum not installed. Falling back to simple gradient for RNN.")
         return _simple_gradient_attribution_rnn(model, input_ids, target_class, device)
 
-    model.eval()
+    # cuDNN RNN backward requires training mode, but we still keep dropout disabled.
+    was_training = model.training
+    dropout_modules = []
+    for module in model.modules():
+        if isinstance(module, torch.nn.Dropout):
+            dropout_modules.append((module, module.training))
+
+    model.train(True)
+    for module, _ in dropout_modules:
+        module.train(False)
+
     model.zero_grad()
 
     def forward_func(input_ids):
@@ -87,51 +97,69 @@ def captum_integrated_gradients_rnn(model, input_ids, target_class,
     input_ids = input_ids.to(device)
     baseline = torch.full_like(input_ids, fill_value=getattr(model, "pad_idx", 0)).to(device)
 
-    attributions, _ = lig.attribute(
-        inputs=input_ids,
-        baselines=baseline,
-        target=target_class,
-        n_steps=n_steps,
-        return_convergence_delta=True,
-    )
-
-    attr_scores = attributions.sum(dim=-1).squeeze(0).cpu().detach().numpy()
-    return attr_scores
+    try:
+        attributions, _ = lig.attribute(
+            inputs=input_ids,
+            baselines=baseline,
+            target=target_class,
+            n_steps=n_steps,
+            return_convergence_delta=True,
+        )
+        attr_scores = attributions.sum(dim=-1).squeeze(0).cpu().detach().numpy()
+        return attr_scores
+    finally:
+        model.train(was_training)
+        for module, state in dropout_modules:
+            module.train(state)
 
 
 def _simple_gradient_attribution_rnn(model, input_ids, target_class, device):
     """Fallback saliency for RNN models when Captum is unavailable."""
-    model.eval()
+    was_training = model.training
+    dropout_modules = []
+    for module in model.modules():
+        if isinstance(module, torch.nn.Dropout):
+            dropout_modules.append((module, module.training))
+
+    model.train(True)
+    for module, _ in dropout_modules:
+        module.train(False)
+
     model.zero_grad()
 
     if not hasattr(model, "embedding"):
         return np.zeros(input_ids.shape[1])
 
-    input_ids = input_ids.to(device)
-    emb_out = model.embedding(input_ids)
-    emb_out.retain_grad()
+    try:
+        input_ids = input_ids.to(device)
+        emb_out = model.embedding(input_ids)
+        emb_out.retain_grad()
 
-    embedded = model.dropout(emb_out) if hasattr(model, "dropout") else emb_out
-    lstm_out, (hidden, _) = model.lstm(embedded)
+        embedded = model.dropout(emb_out) if hasattr(model, "dropout") else emb_out
+        lstm_out, (hidden, _) = model.lstm(embedded)
 
-    if hasattr(model, "attention"):
-        pad_idx = getattr(model, "pad_idx", 0)
-        mask = (input_ids != pad_idx).float()
-        context, _ = model.attention(lstm_out, mask)
-        features = model.dropout(context) if hasattr(model, "dropout") else context
-    else:
-        hidden_fwd = hidden[-2]
-        hidden_bwd = hidden[-1]
-        hidden_cat = torch.cat([hidden_fwd, hidden_bwd], dim=1)
-        features = model.dropout(hidden_cat) if hasattr(model, "dropout") else hidden_cat
+        if hasattr(model, "attention"):
+            pad_idx = getattr(model, "pad_idx", 0)
+            mask = (input_ids != pad_idx).float()
+            context, _ = model.attention(lstm_out, mask)
+            features = model.dropout(context) if hasattr(model, "dropout") else context
+        else:
+            hidden_fwd = hidden[-2]
+            hidden_bwd = hidden[-1]
+            hidden_cat = torch.cat([hidden_fwd, hidden_bwd], dim=1)
+            features = model.dropout(hidden_cat) if hasattr(model, "dropout") else hidden_cat
 
-    logits = model.fc(features)
-    loss = logits[0, target_class]
-    loss.backward()
+        logits = model.fc(features)
+        loss = logits[0, target_class]
+        loss.backward()
 
-    if emb_out.grad is None:
-        return np.zeros(input_ids.shape[1])
-    return emb_out.grad.sum(dim=-1).squeeze(0).cpu().detach().numpy()
+        if emb_out.grad is None:
+            return np.zeros(input_ids.shape[1])
+        return emb_out.grad.sum(dim=-1).squeeze(0).cpu().detach().numpy()
+    finally:
+        model.train(was_training)
+        for module, state in dropout_modules:
+            module.train(state)
 
 
 def get_rnn_ig_explanation(model, text, vocab, device=config.DEVICE,
