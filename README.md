@@ -1,49 +1,88 @@
-# NLP Rating Classification — Women's E-Commerce Clothing Reviews
+# NLP Rating Classification - Women's E-Commerce Clothing Reviews
 
-5-class rating classification (1–5) from review text, comparing **RNN** (BiLSTM, BiLSTM+Attention) vs **Transformer** (DistilBERT, BERT-base) models.
+End-to-end 5-class rating classification (1-5) from review text.
+The project compares RNN-based and Transformer-based models, then adds error analysis,
+XAI, robustness testing, ensemble evaluation, and a Streamlit demo.
 
-## Features
+## Current Scope
 
-- **4 Models**: BiLSTM, BiLSTM+Attention, DistilBERT, BERT-base
-- **Imbalance Strategies**: Weighted CE vs Undersampled CE
-- **Fine-tuning Strategies**: Freeze, Full, Layer-wise LR Decay (LLRD)
-- **XAI**: Attention visualization, Captum Integrated Gradients, LIME
-- **Error Analysis**: Confusion pairs, sample categorization, cross-strategy comparison
-- **Augmentation**: Synonym replacement + random deletion
-- **Robustness**: Noisy test set evaluation (typos, case, punctuation)
-- **Efficiency**: Parameters, model size, inference time comparison
-- **Ensemble**: Weighted probability averaging (RNN + Transformer)
-- **Demo**: Streamlit web app
+- 4 model families:
+	- BiLSTM
+	- BiLSTM + Attention
+	- DistilBERT
+	- BERT-base
+- Imbalance strategies: `weighted_ce`, `undersample_ce`
+- Transformer fine-tuning strategies: `freeze`, `full`, `llrd`
+- Analysis pipelines:
+	- Full evaluation across all checkpoints
+	- Error analysis (best models)
+	- XAI (IG/LIME)
+	- Robustness (clean vs noisy)
+	- Two-model weighted ensemble
+- Streamlit demo for interactive inference
 
+## Repository Layout
 
-## Project Structure
-
+```text
+.
+|- app/
+|  |- streamlit_app.py
+|- data/
+|  |- raw/
+|  |- splits/
+|  |- processed/
+|- scripts/
+|  |- prepare_data.py
+|  |- train_bilstm.py
+|  |- train_bilstm_attention.py
+|  |- train_distilbert.py
+|  |- train_transformer_large.py
+|  |- evaluate_all.py
+|  |- run_xai.py
+|  |- run_error_analysis.py
+|  |- run_robustness.py
+|  |- run_ensemble.py
+|- src/
+|- outputs/
+|  |- checkpoints/
+|  |- figures/
+|  |- reports/
+|  |- tables/
+|  |- logs/
+|- kaggle_runner.py
+|- REPORT.md
+|- requirements.txt
+`- README.md
 ```
-├── data/raw/               # Raw CSV dataset
-├── data/splits/            # Train/Val/Test CSVs
-├── src/                    # Core modules (17 files)
-├── scripts/                # CLI scripts (14 files)
-├── app/                    # Streamlit demo
-├── outputs/                # Checkpoints, figures, reports, tables
-├── notebooks/              # Jupyter notebooks for analysis
-├── requirements.txt
-└── README.md
-```
 
-## Setup
+## Installation
 
 ```bash
-# 1. Install dependencies
+python -m venv .venv
+# Windows PowerShell
+.venv\Scripts\Activate.ps1
+
 pip install -r requirements.txt
+```
 
-# 2. Place dataset in data/raw/
-# File: "Womens Clothing E-Commerce Reviews.csv"
+## Data Preparation
 
-# 3. Prepare data (clean, split, save)
+1. Put dataset CSV at:
+	 - `data/raw/Womens Clothing E-Commerce Reviews.csv`
+2. Run preprocessing:
+
+```bash
 python scripts/prepare_data.py
 ```
 
-## Training Models
+Generated splits:
+- `data/splits/train.csv`
+- `data/splits/val.csv`
+- `data/splits/test.csv`
+
+## Training
+
+### RNN Models
 
 ```bash
 # BiLSTM
@@ -51,77 +90,84 @@ python scripts/train_bilstm.py --imbalance weighted_ce --epochs 15
 
 # BiLSTM + Attention
 python scripts/train_bilstm_attention.py --imbalance weighted_ce --epochs 15
+```
 
-# DistilBERT (with fine-tune strategy)
+### Transformer Models
+
+```bash
+# DistilBERT
 python scripts/train_distilbert.py --finetune full --imbalance weighted_ce --epochs 4
 
 # BERT-base
-python scripts/train_transformer_large.py --finetune full --imbalance weighted_ce --epochs 4
+python scripts/train_transformer_large.py --finetune llrd --imbalance weighted_ce --epochs 4
 ```
 
-### Fine-tuning Strategies (Transformers)
+### Common Training Arguments
+
+- `--imbalance`: `weighted_ce` or `undersample_ce`
+- `--epochs`: number of epochs
+- `--batch_size`: batch size
+- `--lr`: learning rate
+- `--wandb`: enable Weights and Biases logging
+- `--wandb_project`, `--wandb_entity`, `--wandb_run_name`: W&B options
+
+Transformer-only argument:
+- `--finetune`: `freeze`, `full`, `llrd`
+
+## Evaluation and Analysis
+
+### 1) Evaluate all checkpoints
 
 ```bash
-python scripts/train_distilbert.py --finetune freeze   # Head only
-python scripts/train_distilbert.py --finetune full      # Full fine-tune
-python scripts/train_distilbert.py --finetune llrd      # Layer-wise LR decay
-```
-
-## Evaluation
-
-```bash
-# Evaluate all trained models on test set
 python scripts/evaluate_all.py
-# → outputs/tables/model_comparison.csv
 ```
 
-## Latest Model Comparison Results
+Primary outputs:
+- `outputs/tables/model_comparison.csv`
+- confusion matrices (`*_confusion_matrix.png`) under `outputs/figures/`
+- per-model metrics JSON under `outputs/reports/`
 
-Source: `outputs/tables/model_comparison.csv`
-
-<!-- ## Imbalance Strategy Comparison
-
-```bash
-# Compare weighted_ce vs undersample_ce
-python scripts/run_imbalance_comparison.py
-# → outputs/tables/imbalance_comparison.csv
-# → outputs/figures/class_distribution_comparison.png
-``` -->
-
-## XAI / Interpretability
-
-```bash
-python scripts/run_xai.py
-# → outputs/reports/xai_results/*.html
-```
-
-## Error Analysis
+### 2) Error analysis (best models only)
 
 ```bash
 python scripts/run_error_analysis.py
-# → outputs/reports/error_analysis/
 ```
 
-## Augmentation & Robustness
+Outputs:
+- `outputs/reports/error_analysis/error_analysis_report.md`
+- `outputs/reports/error_analysis/error_summary_best_models.csv`
+- `outputs/reports/error_analysis/*_misclassified.csv`
+
+### 3) XAI (best models only)
 
 ```bash
-python scripts/run_augmentation.py     # With/without augmentation
-python scripts/run_robustness.py       # Clean vs noisy test set
+python scripts/run_xai.py
 ```
 
-<!-- ## Efficiency Comparison
+Outputs:
+- `outputs/reports/xai_results/*.html`
+
+### 4) Robustness (clean vs noisy)
 
 ```bash
-python scripts/run_efficiency.py
-# → outputs/tables/efficiency_comparison.csv
-``` -->
+python scripts/run_robustness.py
+```
 
-## Ensemble
+Outputs:
+- `outputs/tables/robustness_results.csv`
+
+### 5) Ensemble
 
 ```bash
 python scripts/run_ensemble.py
-# → outputs/tables/ensemble_comparison.csv
 ```
+
+Outputs:
+- `outputs/tables/ensemble_comparison.csv`
+- `outputs/tables/ensemble_alpha_search.csv`
+
+Note:
+- `run_ensemble.py` currently ensembles two hard-coded checkpoints (edit `MODEL_A` / `MODEL_B` inside the script to change pair).
 
 ## Streamlit Demo
 
@@ -129,17 +175,37 @@ python scripts/run_ensemble.py
 streamlit run app/streamlit_app.py
 ```
 
-## Hardware Notes
+The app auto-detects available checkpoints and supports explanation methods per model.
 
-- **GPU recommended** for Transformer training (CUDA)
-- **CPU** sufficient for RNN training and inference
-- Estimated VRAM: ~4GB for DistilBERT, ~6GB for BERT-base (batch_size=16)
-- Training times (approx): RNN ~10min, DistilBERT ~30min, BERT-base ~1h (on GPU)
+## Current Best Snapshot
 
-## Dataset
+From latest evaluation artifacts in `outputs/tables/model_comparison.csv`:
 
-- **Source**: Women's E-Commerce Clothing Reviews
-- **Samples**: ~23,000 after cleaning
-- **Input**: Title + " [SEP] " + Review Text
-- **Target**: Rating (1–5) → mapped to labels (0–4)
-- **Split**: 70% train / 15% val / 15% test (stratified)
+- Best overall: `bert_llrd_weighted_ce`
+	- Accuracy: `0.6825`
+	- Macro-F1: `0.5646`
+	- Weighted-F1: `0.6891`
+
+Best-by-family macro-F1:
+- BiLSTM: `bilstm_weighted_ce` (`0.4854`)
+- BiLSTM+Attention: `bilstm_attention_weighted_ce` (`0.4921`)
+- DistilBERT: `distilbert_full_weighted_ce` (`0.5421`)
+- BERT-base: `bert_llrd_weighted_ce` (`0.5646`)
+
+See full report in `REPORT.md`.
+
+## Kaggle Runner (Optional)
+
+If you use Kaggle kernels, this project includes `kaggle_runner.py` to automate
+training/evaluation steps with Kaggle datasets and secrets.
+
+Typical push command:
+
+```bash
+kaggle kernels push -p .
+```
+
+## Notes
+
+- There is currently no standalone `scripts/run_augmentation.py` in this repository.
+- Augmentation helpers exist in `src/augmentation.py` but are not exposed as a separate CLI script.
