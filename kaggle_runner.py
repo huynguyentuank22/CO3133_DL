@@ -53,24 +53,24 @@ VOCABS_INPUT_CANDIDATES = [
 
 # Che do evaluate nhanh bang checkpoints da upload len Kaggle.
 # Khong xoa logic train hien co, chi them fast-path de chay evaluate_all.
-RUN_EVALUATE_ALL = False
-EVALUATE_ONLY = True
+RUN_EVALUATE_ALL = True
+EVALUATE_ONLY = False
 
 # Che do chay XAI voi checkpoints da train san.
 RUN_XAI = False
 XAI_ONLY = True
 
 # Che do chay Error Analysis voi checkpoints da train san.
-RUN_ERROR_ANALYSIS = False
-ERROR_ANALYSIS_ONLY = True
+RUN_ERROR_ANALYSIS = True
+ERROR_ANALYSIS_ONLY = False
 
 # Che do chay Robustness voi checkpoints da train san.
-RUN_ROBUSTNESS = False
-ROBUSTNESS_ONLY = True
+RUN_ROBUSTNESS = True
+ROBUSTNESS_ONLY = False
 
 # Che do chay Ensemble voi checkpoints da train san.
 RUN_ENSEMBLE = True
-ENSEMBLE_ONLY = True
+ENSEMBLE_ONLY = False
 
 # Bat/tat cac nhom sweep
 ENABLE_RNN_SWEEP = False
