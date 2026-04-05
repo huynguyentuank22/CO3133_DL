@@ -109,7 +109,7 @@ def eval_transformer_model(model_class, model_name, checkpoint_name, test_df,
     metrics.update(timing)
 
     cm_path = os.path.join(config.FIGURES_DIR, f"{model_name}_confusion_matrix.png")
-    plot_confusion_matrix(labels, preds, title=f"{model_name} â€” Confusion Matrix", save_path=cm_path)
+    plot_confusion_matrix(labels, preds, title=f"{model_name} Confusion Matrix", save_path=cm_path)
 
     report = get_classification_report(labels, preds)
     logger.info(f"\n{model_name} Classification Report:\n{report}")
