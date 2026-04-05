@@ -10,6 +10,31 @@ Dashboard: https://api.wandb.ai/links/huy-nguyentuank22-ho-chi-minh-city-univers
 
 ![Class Distribution Comparison](outputs/figures/class_distribution_comparison.png)
 
+## EDA (Title + Review Text -> Rating)
+
+Phần EDA bên dưới chỉ tập trung vào 3 cột phục vụ mô hình: `title`, `review_text`, `rating`.
+Các hình được xuất từ notebook `notebooks/eda.ipynb` vào thư mục `outputs/figures/eda`.
+
+### Raw Data Overview
+
+![Raw Rating and Review Token by Rating](outputs/figures/eda/raw_rating_review_token_by_rating.png)
+
+![Raw Title and Review Token Length](outputs/figures/eda/raw_title_review_token_length.png)
+
+![Raw Missing and Token Gap](outputs/figures/eda/raw_missing_and_token_gap.png)
+
+### After Prepare Data Overview
+
+![After Prepare Rating Comparison](outputs/figures/eda/after_prepare_rating_comparison.png)
+
+![Token Length Before After Prepare](outputs/figures/eda/token_length_before_after_prepare.png)
+
+### Train Val Test Split Checks
+
+![Split Rating Count Ratio](outputs/figures/eda/split_rating_count_ratio.png)
+
+![Split Title Review Token Length](outputs/figures/eda/split_title_review_token_length.png)
+
 ## Full Model Comparison (All Runs)
 
 | model_name | accuracy | macro_f1 | weighted_f1 | precision | recall | model_size_mb | inference_time_per_sample_ms |

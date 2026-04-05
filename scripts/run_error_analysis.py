@@ -22,6 +22,7 @@ from src.error_analysis import (
     get_top_confusion_pairs, extract_misclassified,
     categorize_errors,
 )
+from src.metrics import compute_metrics
 
 logger = get_logger("error_analysis", os.path.join(config.LOGS_DIR, "error_analysis.log"))
 
@@ -159,8 +160,10 @@ def main():
         for item in results:
             y_true = item["y_true"]
             y_pred = item["y_pred"]
-            accuracy = float((y_true == y_pred).mean())
-            summary_rows.append((item["result_key"], item["ckpt_name"], accuracy, 1.0 - accuracy))
+            metrics = compute_metrics(y_true, y_pred)
+            accuracy = metrics["accuracy"]
+            mae = metrics["mae"]
+            summary_rows.append((item["result_key"], item["ckpt_name"], accuracy, mae, 1.0 - accuracy))
 
             lines.append(f"\n## {item['result_key']} ({item['ckpt_name']})\n")
 
@@ -179,15 +182,15 @@ def main():
 
         summary_df = pd.DataFrame(
             summary_rows,
-            columns=["model_family", "checkpoint", "accuracy", "error_rate"],
+            columns=["model_family", "checkpoint", "accuracy", "mae", "error_rate"],
         )
         summary_df.to_csv(os.path.join(report_dir, "error_summary_best_models.csv"), index=False)
 
         lines.append("\n## Summary (Best Models)\n")
-        lines.append("| Model Family | Checkpoint | Accuracy | Error Rate |")
-        lines.append("|--------------|------------|----------|------------|")
-        for family, ckpt, acc, err in summary_rows:
-            lines.append(f"| {family} | {ckpt} | {acc:.4f} | {err:.4f} |")
+        lines.append("| Model Family | Checkpoint | Accuracy | MAE | Error Rate |")
+        lines.append("|--------------|------------|----------|-----|------------|")
+        for family, ckpt, acc, mae, err in summary_rows:
+            lines.append(f"| {family} | {ckpt} | {acc:.4f} | {mae:.4f} | {err:.4f} |")
 
         report_path = os.path.join(report_dir, "error_analysis_report.md")
         with open(report_path, "w", encoding="utf-8") as f:

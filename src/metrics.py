@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import (
     accuracy_score, precision_score, recall_score, f1_score,
-    confusion_matrix, classification_report,
+    confusion_matrix, classification_report, mean_absolute_error,
 )
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -18,13 +18,14 @@ logger = get_logger(__name__)
 
 
 def compute_metrics(y_true, y_pred) -> dict:
-    """Compute all classification metrics."""
+    """Compute classification metrics plus ordinal-aware MAE."""
     return {
         "accuracy": float(accuracy_score(y_true, y_pred)),
         "precision": float(precision_score(y_true, y_pred, average="macro", zero_division=0)),
         "recall": float(recall_score(y_true, y_pred, average="macro", zero_division=0)),
         "macro_f1": float(f1_score(y_true, y_pred, average="macro", zero_division=0)),
         "weighted_f1": float(f1_score(y_true, y_pred, average="weighted", zero_division=0)),
+        "mae": float(mean_absolute_error(y_true, y_pred)),
     }
 
 
@@ -75,7 +76,7 @@ def create_summary_table(all_results: list) -> pd.DataFrame:
     """Create summary comparison table from list of result dicts.
     
     Each dict should have keys like: model_name, model_family,
-    imbalance_strategy, fine_tune_strategy, accuracy, macro_f1, etc.
+    imbalance_strategy, fine_tune_strategy, accuracy, macro_f1, mae, etc.
     """
     df = pd.DataFrame(all_results)
     return df

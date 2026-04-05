@@ -85,10 +85,20 @@ def create_noisy_test_set(df: pd.DataFrame, text_col: str = "full_text",
 
 def compare_robustness(clean_metrics: dict, noisy_metrics: dict,
                         model_name: str) -> dict:
-    """Compare clean vs noisy metrics."""
+    """Compare clean vs noisy metrics.
+
+    The drop_* columns are defined so a positive value means degradation.
+    """
     result = {"model_name": model_name}
+    error_metrics = {"mae", "mse", "rmse"}
     for key in clean_metrics:
         result[f"clean_{key}"] = clean_metrics[key]
         result[f"noisy_{key}"] = noisy_metrics[key]
-        result[f"drop_{key}"] = round(clean_metrics[key] - noisy_metrics[key], 4)
+        if key in error_metrics:
+            # For error metrics, larger is worse.
+            drop = noisy_metrics[key] - clean_metrics[key]
+        else:
+            # For score metrics, smaller is worse.
+            drop = clean_metrics[key] - noisy_metrics[key]
+        result[f"drop_{key}"] = round(drop, 4)
     return result
