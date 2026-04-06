@@ -100,9 +100,9 @@
 
 ## Summary (Best Models)
 
-| Model Family | Checkpoint | Accuracy | Error Rate |
-|--------------|------------|----------|------------|
-| bilstm | bilstm_weighted_ce | 0.6524 | 0.3476 |
-| bilstm_attn | bilstm_attention_weighted_ce | 0.6356 | 0.3644 |
-| distilbert | distilbert_full_weighted_ce | 0.6707 | 0.3293 |
-| bert | bert_llrd_weighted_ce | 0.6825 | 0.3175 |
+| Model Family | Checkpoint | Accuracy | MAE | Error Rate |
+|--------------|------------|----------|-----|------------|
+| bilstm | bilstm_weighted_ce | 0.6524 | 0.4118 | 0.3476 |
+| bilstm_attn | bilstm_attention_weighted_ce | 0.6356 | 0.4150 | 0.3644 |
+| distilbert | distilbert_full_weighted_ce | 0.6707 | 0.3688 | 0.3293 |
+| bert | bert_llrd_weighted_ce | 0.6825 | 0.3505 | 0.3175 |

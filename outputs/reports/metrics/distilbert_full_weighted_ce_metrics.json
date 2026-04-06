@@ -4,10 +4,11 @@
   "recall": 0.5507297345149086,
   "macro_f1": 0.5420674755468757,
   "weighted_f1": 0.6772347276103873,
+  "mae": 0.3687776141384389,
   "model_name": "distilbert_full_weighted_ce",
   "num_parameters": 66366725,
   "model_size_mb": 253.17,
   "total_inference_time_sec": 11.4658,
   "total_samples": 3395,
-  "inference_time_per_sample_ms": 3.3773
+  "inference_time_per_sample_ms": 3.3772
 }

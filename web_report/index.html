@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CO3133 DL - Báo Cáo Web</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand-block">
+      <p class="eyebrow">CO3133 Deep Learning Project</p>
+      <h1>Dự đoán Điểm Đánh Giá Từ Nhận Xét Quần Áo</h1>
+      <p class="subtitle">
+        Báo cáo end-to-end cho bài toán phân loại rating 5 mức (1-5) từ title + review text,
+        tổng hợp đầy đủ EDA, tiền xử lý, chia dữ liệu, backbone, huấn luyện, benchmark và demo.
+      </p>
+      <div class="meta-strip" id="heroMeta"></div>
+    </div>
+
+    <nav class="top-nav" aria-label="Main sections">
+      <a href="#section-01">Giới thiệu</a>
+      <a href="#section-02">EDA</a>
+      <a href="#section-021">Tiền xử lý</a>
+      <a href="#section-03">Chia dữ liệu & Loader</a>
+      <a href="#section-04">Phương pháp</a>
+      <a href="#section-05">Huấn luyện</a>
+      <a href="#section-06">So sánh mô hình</a>
+      <a href="#section-08">Kết quả & Tình huống</a>
+      <a href="#live-demo">Demo trực tiếp</a>
+    </nav>
+  </header>
+
+  <main>
+    <section id="section-01" class="panel">
+      <div class="section-head">
+        <p class="eyebrow">01. Giới thiệu và mô tả bài toán</p>
+        <h2>Bài toán, Input / Output, Mục tiêu</h2>
+      </div>
+
+      <div class="two-col-note">
+        <article>
+          <h3>Bài toán</h3>
+          <p>
+            Đây là bài toán phân loại văn bản (multiclass classification):
+            dự đoán rating từ 1 đến 5 cho review thời trang.
+          </p>
+          <ul>
+            <li>Input: title (có thể rỗng) + review_text.</li>
+            <li>Output: 1 trong 5 nhãn rating (1, 2, 3, 4, 5).</li>
+            <li>Mục tiêu: tối ưu chất lượng macro-F1 trong bối cảnh mất cân bằng lớp.</li>
+          </ul>
+        </article>
+
+        <article>
+          <h3>Mục tiêu thực nghiệm</h3>
+          <ul>
+            <li>So sánh 4 backbone: BiLSTM, BiLSTM+Attention, DistilBERT, BERT-base.</li>
+            <li>Đánh giá 3 chế độ fine-tune cho Transformer: freeze, full, llrd.</li>
+            <li>Đánh giá 2 chiến lược imbalance: weighted_ce và undersample_ce.</li>
+            <li>Kiểm tra trade-off giữa chất lượng và latency/size để dễ triển khai thực tế.</li>
+            <li>Mở rộng với robustness, error analysis, XAI và ensemble.</li>
+          </ul>
+        </article>
+      </div>
+
+      <div class="stat-card-grid" id="problemStatCards"></div>
+    </section>
+
+    <section id="section-02" class="panel">
+      <div class="section-head">
+        <p class="eyebrow">02. EDA</p>
+        <h2>Phân bố dữ liệu và minh họa mẫu</h2>
+      </div>
+
+      <article class="step-card">
+        <h3>Sample compact</h3>
+        <div id="sampleCards" class="sample-grid"></div>
+      </article>
+
+      <div class="figure-grid eda-figure-grid">
+        <figure class="figure-card eda-card-rating">
+          <img src="../outputs/figures/eda/raw_rating_review_token_by_rating.png" alt="Raw rating and token distribution" loading="lazy">
+          <figcaption>Phân bố rating và token theo từng rating trên dữ liệu gốc.</figcaption>
+        </figure>
+        <figure class="figure-card eda-card-token">
+          <img src="../outputs/figures/eda/raw_title_review_token_length.png" alt="Raw title and review lengths" loading="lazy">
+          <figcaption>Độ dài title/review trước preprocessing.</figcaption>
+        </figure>
+        <figure class="figure-card eda-card-missing">
+          <img src="../outputs/figures/eda/raw_missing_and_token_gap.png" alt="Missing values and token gap" loading="lazy">
+          <figcaption>Tỉ lệ missing và khoảng cách token giữa title và review.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="section-021" class="panel">
+      <div class="section-head">
+        <p class="eyebrow">03. Tiền xử lý / Feature preparation</p>
+        <h2>Pipeline tiền xử lý dữ liệu cho huấn luyện</h2>
+      </div>
+
+      <article class="step-card">
+        <h3>Các bước tiền xử lý đã áp dụng</h3>
+        <ol>
+          <li>Drop missing review_text/rating, fill missing title.</li>
+          <li>Deduplicate theo title + review_text + rating.</li>
+          <li>Normalize whitespace cho title và review_text.</li>
+          <li>Bỏ review quá ngắn (&lt;3 tokens).</li>
+          <li>Tạo full_text = title [SEP] review_text và map label 0-4.</li>
+        </ol>
+      </article>
+
+      <div class="table-grid-2">
+        <article>
+          <h3>Số liệu before/after theo pipeline</h3>
+          <div class="table-wrap table-wrap-fit">
+            <table>
+              <thead>
+                <tr>
+                  <th>Chỉ số</th>
+                  <th>Giá trị</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>Raw rows (ban đầu)</td><td>23,486</td></tr>
+                <tr>
+                  <td>Sau drop missing review_text/rating</td>
+                  <td class="value-with-delta">22,641 <span class="delta-badge" aria-label="Giam 845 mau so voi buoc truoc">&darr;845</span></td>
+                </tr>
+                <tr>
+                  <td>Sau deduplicate title + review_text + rating</td>
+                  <td class="value-with-delta">22,636 <span class="delta-badge" aria-label="Giam 5 mau so voi buoc truoc">&darr;5</span></td>
+                </tr>
+                <tr>
+                  <td><strong>Sau lọc review &lt; 3 tokens - kết quả cuối</strong></td>
+                  <td class="value-with-delta"><strong>22,628</strong> <span class="delta-badge" aria-label="Giam 8 mau so voi buoc truoc">&darr;8</span></td>
+                </tr>
+                <tr><td>Tỉ lệ giữ lại cuối cùng so với raw</td><td>96.35%</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <article>
+          <h3>So sánh token length before/after</h3>
+          <div class="table-wrap table-wrap-fit">
+            <table>
+              <thead>
+                <tr>
+                  <th>Thống kê review token</th>
+                  <th>Before</th>
+                  <th>After</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>Mean</td><td>58.03</td><td>60.22</td></tr>
+                <tr><td>Median</td><td>57</td><td>59</td></tr>
+                <tr><td>P95</td><td>101</td><td>101</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </div>
+
+      <div class="figure-grid narrow">
+        <figure class="figure-card">
+          <img src="../outputs/figures/eda/after_prepare_rating_comparison.png" alt="Rating distribution before and after prepare" loading="lazy">
+          <figcaption>So sánh phân bố rating trước/sau prepare data.</figcaption>
+        </figure>
+        <figure class="figure-card">
+          <img src="../outputs/figures/eda/token_length_before_after_prepare.png" alt="Token length before and after prepare" loading="lazy">
+          <figcaption>So sánh token length before/after preprocessing.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="section-03" class="panel">
+      <div class="section-head">
+        <p class="eyebrow">04. Data Split / Scenario Split / Undersampling</p>
+        <h2>Train-Val-Test, phân bố lớp và dataloader</h2>
+      </div>
+
+      <div class="scenario-grid">
+        <article class="step-card">
+          <h3>Data split</h3>
+          <ul>
+            <li>Tỷ lệ split thực tế: 70/15/15 (stratified by label).</li>
+            <li>Train: 15,839 | Val: 3,394 | Test: 3,395.</li>
+            <li>Tổng sau clean: 22,628 mẫu.</li>
+          </ul>
+        </article>
+
+        <article class="step-card">
+          <h3>Noisy scenario</h3>
+          <ul>
+            <li>Tạo noisy từ test.csv bằng create_noisy_test_set(full_text).</li>
+            <li>Cấu hình: typo 0.03 | case 0.08 | punctuation 0.03 | drop token 0.03.</li>
+            <li>Ví dụ: "Amazing dress" có thể thành "aMaizng dress!..." sau pipeline nhiễu.</li>
+            <li>Số record: 3,395 (clean) -&gt; 3,395 (noisy).</li>
+          </ul>
+        </article>
+
+        <article class="step-card">
+          <h3>Undersampling</h3>
+          <ul>
+            <li>Dùng random_undersample theo cột label trên train set.</li>
+            <li>Nguyên tắc: lấy về bằng lớp nhỏ nhất (min class = 575).</li>
+            <li>Kết quả: 15,839 -&gt; 2,875 mẫu (5 lớp, mỗi lớp 575).</li>
+          </ul>
+        </article>
+
+        <article class="step-card">
+          <h3>Data loader</h3>
+          <ul>
+            <li>RNNDataset: build/load vocab trước, rồi encode token ids -&gt; DataLoader(batch=64).</li>
+            <li>TransformerDataset: dùng HF tokenizer (DistilBERT/BERT) để tokenize -&gt; DataLoader(batch=16).</li>
+            <li>Input model đều dùng full_text + label sau preprocessing.</li>
+          </ul>
+        </article>
+      </div>
+
+      <article>
+        <h3>Phân bố class theo split</h3>
+        <div class="table-wrap table-wrap-fit" id="splitTableWrap"></div>
+      </article>
+
+      <div class="figure-grid narrow single-figure">
+        <figure class="figure-card">
+          <img src="../outputs/figures/class_distribution_comparison.png" alt="Class distribution before and after undersampling" loading="lazy">
+          <figcaption>So sánh phân bố class giữa Original Train, Undersampled Train, Validation và Test.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="section-04" class="panel">
+      <div class="section-head">
+        <p class="eyebrow">05. Phương pháp / Backbone / Thuật toán</p>
+        <h2>Từ pipeline đến 4 backbone chính</h2>
+      </div>
+
+      <div class="architecture-flow" id="architectureFlow"></div>
+
+      <div class="three-col-grid">
+        <article>
+          <h3>Nhóm RNN</h3>
+          <ul>
+            <li>BiLSTM và BiLSTM + Attention.</li>
+            <li>Dùng Vocabulary riêng từng checkpoint.</li>
+            <li>Batch size 64, max length 256.</li>
+          </ul>
+        </article>
+        <article>
+          <h3>Nhóm Transformer</h3>
+          <ul>
+            <li>DistilBERT và BERT-base.</li>
+            <li>Fine-tune modes: freeze, full, llrd.</li>
+            <li>Batch size 16, warmup + linear decay scheduler.</li>
+          </ul>
+        </article>
+        <article>
+          <h3>Đánh giá</h3>
+          <ul>
+            <li>Metric: accuracy, precision, recall, macro-F1, weighted-F1, MAE.</li>
+            <li>Efficiency: num params, model size, inference ms/sample.</li>
+            <li>Confusion matrix và error analysis bổ sung.</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section id="section-05" class="panel">
+      <div class="section-head">
+        <p class="eyebrow">06. Training / Optimization process</p>
+        <h2>Kết quả train BERT (LLRD + weighted_ce) và cấu hình</h2>
+      </div>
+
+      <div class="figure-grid narrow single-figure">
+        <figure class="figure-card">
+          <img src="../outputs/figures/wb_example.png" alt="W&B example for BERT llrd weighted configuration" loading="lazy">
+          <figcaption>W&amp;B example: kết quả train nhiều config, đang chọn bert_llrd_weighted để minh họa.</figcaption>
+        </figure>
+      </div>
+
+      <article class="step-card">
+        <p>
+          Theo dõi đầy đủ các run (bert_freeze/full/llrd + weighted/undersample), biểu đồ và logs tại:
+          <a href="https://api.wandb.ai/links/huy-nguyentuank22-ho-chi-minh-city-university-of-technology/igh06zwd" target="_blank" rel="noopener noreferrer">WandB project dashboard</a>.
+        </p>
+      </article>
+
+      <article>
+        <h3>Tập hyperparameter đã thử</h3>
+        <div class="table-wrap table-wrap-fit">
+          <table>
+            <thead>
+              <tr>
+                <th>Hyperparameter</th>
+                <th>Giá trị đã thử</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>chiến lược fine-tune</td><td>BERT/DistilBERT: freeze, full, llrd; BiLSTM: không dùng fine-tune mode</td></tr>
+              <tr><td>imbalance_strategy</td><td>weighted_ce, undersample_ce</td></tr>
+              <tr><td>learning_rate (theo họ model)</td><td>BiLSTM: 5e-4, 1e-3; DistilBERT: 1e-5, 2e-5, 3e-5; BERT: 2e-5, 3e-5</td></tr>
+              <tr><td>batch_size (theo họ model)</td><td>BiLSTM: 32, 64; DistilBERT: 16, 32; BERT: 8, 16</td></tr>
+              <tr><td>epochs (theo họ model)</td><td>BiLSTM: 15, 20; DistilBERT: 4, 5; BERT: 4, 5</td></tr>
+              <tr><td>LLRD decay</td><td>decay_factor = 0.85; layer_lr = base_lr x (0.85^k), k tăng dần từ layer trên xuống layer dưới; embeddings/pooler dùng mức LR thấp hơn</td></tr>
+              <tr><td>optimizer</td><td>AdamW</td></tr>
+              <tr><td>weight_decay</td><td>0.01</td></tr>
+              <tr><td>warmup_ratio (Transformer)</td><td>0.1, sau đó dùng linear decay scheduler</td></tr>
+              <tr><td>max_length</td><td>256 tokens (RNN/Transformer)</td></tr>
+              <tr><td>grad_clip</td><td>RNN: 5.0; Transformer: 1.0</td></tr>
+              <tr><td>early_stopping</td><td>patience = 3, metric = val macro-F1</td></tr>
+              <tr><td>seed</td><td>42</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+    <section id="section-06" class="panel">
+      <div class="section-head">
+        <p class="eyebrow">07. So sánh toàn bộ cấu hình</p>
+        <h2>Bảng filter + sort, metric và gallery confusion matrix</h2>
+      </div>
+
+      <div class="control-row">
+        <input id="searchModels" type="search" placeholder="Lọc theo tên model..." aria-label="Filter models">
+        <select id="familyFilter" aria-label="Filter by family">
+          <option value="all">Tất cả backbone</option>
+          <option value="bilstm">BiLSTM</option>
+          <option value="bilstm_attention">BiLSTM+Attention</option>
+          <option value="distilbert">DistilBERT</option>
+          <option value="bert">BERT</option>
+        </select>
+        <select id="setupFilter" aria-label="Filter by setup">
+          <option value="all">Tất cả setup</option>
+          <option value="weighted_ce">weighted_ce</option>
+          <option value="undersample_ce">undersample_ce</option>
+          <option value="freeze">freeze</option>
+          <option value="full">full</option>
+          <option value="llrd">llrd</option>
+        </select>
+        <select id="sortMetric" aria-label="Sort by metric">
+          <option value="macro_f1">Sắp xếp theo Macro-F1</option>
+          <option value="accuracy">Sắp xếp theo Accuracy</option>
+          <option value="weighted_f1">Sắp xếp theo Weighted-F1</option>
+          <option value="mae">Sắp xếp theo MAE</option>
+          <option value="inference_time_per_sample_ms">Sắp xếp theo Inference ms</option>
+          <option value="model_size_mb">Sắp xếp theo Model size</option>
+        </select>
+      </div>
+
+      <div class="table-wrap" id="modelTableWrap"></div>
+
+      <h3>Top model theo Macro-F1</h3>
+      <div id="topBars" class="bars-wrap"></div>
+
+      <div class="table-grid-2">
+        <article>
+          <h3>Ensemble alpha search</h3>
+          <div class="table-wrap" id="ensembleAlphaTable"></div>
+        </article>
+        <article>
+          <h3>Robustness clean vs noisy</h3>
+          <div class="table-wrap" id="robustnessTable"></div>
+        </article>
+      </div>
+
+      <h3>Confusion matrix gallery</h3>
+      <div class="control-row compact">
+        <select id="cmGroup" aria-label="Confusion matrix group">
+          <option value="all">All checkpoints</option>
+          <option value="weighted">weighted_ce only</option>
+          <option value="undersample">undersample_ce only</option>
+          <option value="bert">BERT family</option>
+          <option value="distilbert">DistilBERT family</option>
+          <option value="rnn">RNN family</option>
+        </select>
+      </div>
+      <div class="figure-grid" id="confusionGallery"></div>
+    </section>
+
+    <section id="section-08" class="panel">
+      <div class="section-head">
+        <p class="eyebrow">08. Kết quả thực nghiệm / Tình huống</p>
+        <h2>Phân tích đúng-sai và giải thích hành vi model</h2>
+      </div>
+
+      <div class="table-grid-2">
+        <article>
+          <h3>Tổng hợp lỗi (best mỗi family)</h3>
+          <div class="table-wrap" id="errorSummaryTable"></div>
+        </article>
+        <article>
+          <h3>Nhóm lỗi nổi bật (BERT tốt nhất)</h3>
+          <div class="table-wrap" id="errorCategoryTable"></div>
+        </article>
+      </div>
+
+      <div class="case-grid" id="caseStudyGrid"></div>
+
+      <article class="discussion-box">
+        <h3>Insight tổng hợp</h3>
+        <ul>
+          <li>Lỗi tập trung mạnh vào cặp nhãn liền kề (5-4, 4-3, 3-2), đúng bản chất ordinal.</li>
+          <li>DistilBERT bền vững hơn trong kịch bản noisy, trong khi BERT đạt đỉnh chất lượng cao nhất.</li>
+          <li>BiLSTM rất nhanh về latency và phù hợp baseline chi phí thấp.</li>
+        </ul>
+      </article>
+
+      <article class="ext-card">
+        <h3>XAI artifact links</h3>
+        <ul class="artifact-links">
+          <li><a href="../outputs/reports/xai_results/bert_xai.html" target="_blank" rel="noopener noreferrer">bert_xai.html</a></li>
+          <li><a href="../outputs/reports/xai_results/distilbert_xai.html" target="_blank" rel="noopener noreferrer">distilbert_xai.html</a></li>
+          <li><a href="../outputs/reports/xai_results/bilstm_xai.html" target="_blank" rel="noopener noreferrer">bilstm_xai.html</a></li>
+          <li><a href="../outputs/reports/xai_results/bilstm_attention_xai.html" target="_blank" rel="noopener noreferrer">bilstm_attention_xai.html</a></li>
+          <li><a href="../outputs/reports/xai_results/bilstm_attention_lime.html" target="_blank" rel="noopener noreferrer">bilstm_attention_lime.html</a></li>
+        </ul>
+      </article>
+    </section>
+
+    <section id="live-demo" class="panel">
+      <div class="section-head">
+        <p class="eyebrow">Live Demo</p>
+        <h2>Nhập dữ liệu / chọn instance / chạy thử kết quả</h2>
+      </div>
+
+      <p>
+        Section này mô phỏng giao diện suy luận bằng các instance đã được đánh giá trong repo.
+        Nếu cần infer thời gian thực với model checkpoint, mở Streamlit app trong app/streamlit_app.py.
+      </p>
+
+      <div class="demo-grid">
+        <form id="demoForm" class="demo-form">
+          <label for="demoCaseSelect">Chọn instance có sẵn</label>
+          <select id="demoCaseSelect" aria-label="Select demo case"></select>
+
+          <label for="demoTitleInput">Title</label>
+          <input id="demoTitleInput" type="text" placeholder="Nhập title (optional)">
+
+          <label for="demoReviewInput">Review text</label>
+          <textarea id="demoReviewInput" rows="6" placeholder="Nhập review text"></textarea>
+
+          <button type="submit" class="primary-btn">Run demo prediction</button>
+        </form>
+
+        <article class="demo-result" id="demoResult">
+          <h3>Kết quả</h3>
+          <p>Chưa có dữ liệu. Hãy chọn 1 instance và bấm Run demo prediction.</p>
+        </article>
+      </div>
+
+      <div class="link-grid">
+        <a class="chip" href="../app/streamlit_app.py" target="_blank" rel="noopener noreferrer">Mở file Streamlit app</a>
+        <a class="chip" href="../outputs/reports/error_analysis/bert_llrd_weighted_ce_misclassified.csv" target="_blank" rel="noopener noreferrer">Nguồn demo cases</a>
+      </div>
+    </section>
+  </main>
+
+  <div id="lightbox" class="lightbox" aria-hidden="true">
+    <button id="lightboxClose" class="lightbox-close" aria-label="Close preview">Đóng</button>
+    <img id="lightboxImage" src="" alt="Full-size preview">
+  </div>
+
+  <div id="textModal" class="text-modal" aria-hidden="true">
+    <article class="text-modal-card">
+      <button id="textModalClose" class="text-modal-close" aria-label="Close full text">Đóng</button>
+      <h3 id="textModalTitle">Toàn văn</h3>
+      <p id="textModalBody"></p>
+    </article>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
