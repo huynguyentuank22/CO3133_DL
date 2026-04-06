@@ -18,6 +18,10 @@
         Báo cáo end-to-end cho bài toán phân loại rating 5 mức (1-5) từ title + review text,
         tổng hợp đầy đủ EDA, tiền xử lý, chia dữ liệu, backbone, huấn luyện, benchmark và demo.
       </p>
+      <div class="link-grid" aria-label="Liên kết nhanh video">
+        <a class="chip" href="https://youtu.be/wz9cOztl7NM" target="_blank" rel="noopener noreferrer">Demo video</a>
+        <a class="chip" href="https://youtu.be/EpD4hE2BC-Y" target="_blank" rel="noopener noreferrer">Slide video</a>
+      </div>
       <div class="meta-strip" id="heroMeta"></div>
     </div>
 
@@ -60,7 +64,7 @@
           <ul>
             <li>So sánh 4 backbone: BiLSTM, BiLSTM+Attention, DistilBERT, BERT-base.</li>
             <li>Đánh giá 3 chế độ fine-tune cho Transformer: freeze, full, llrd.</li>
-            <li>Đánh giá 2 chiến lược imbalance: weighted_ce và undersample_ce.</li>
+            <li>Đánh giá 2 chế độ xử lý imbalance: weighted_ce (train gốc + weighted cross-entropy) và undersample_ce (train undersampled + cross-entropy thường).</li>
             <li>Kiểm tra trade-off giữa chất lượng và latency/size để dễ triển khai thực tế.</li>
             <li>Mở rộng với robustness, error analysis, XAI và ensemble.</li>
           </ul>
@@ -210,6 +214,7 @@
             <li>Dùng random_undersample theo cột label trên train set.</li>
             <li>Nguyên tắc: lấy về bằng lớp nhỏ nhất (min class = 575).</li>
             <li>Kết quả: 15,839 -&gt; 2,875 mẫu (5 lớp, mỗi lớp 575).</li>
+              <li>Thiết lập train tương ứng: với tập undersampled thì dùng cross-entropy thường (không class weights).</li>
           </ul>
         </article>
 
@@ -287,7 +292,8 @@
 
       <article class="step-card">
         <p>
-          Theo dõi đầy đủ các run (bert_freeze/full/llrd + weighted/undersample), biểu đồ và logs tại:
+          Theo dõi đầy đủ các run (bert_freeze/full/llrd + weighted/undersample), trong đó
+          weighted_ce = train gốc + weighted CE và undersample_ce = undersampled train + CE thường, tại:
           <a href="https://api.wandb.ai/links/huy-nguyentuank22-ho-chi-minh-city-university-of-technology/igh06zwd" target="_blank" rel="noopener noreferrer">WandB project dashboard</a>.
         </p>
       </article>
@@ -304,7 +310,7 @@
             </thead>
             <tbody>
               <tr><td>chiến lược fine-tune</td><td>BERT/DistilBERT: freeze, full, llrd; BiLSTM: không dùng fine-tune mode</td></tr>
-              <tr><td>imbalance_strategy</td><td>weighted_ce, undersample_ce</td></tr>
+                <tr><td>imbalance_strategy</td><td>weighted_ce (train gốc + weighted CE), undersample_ce (undersampled train + CE thường)</td></tr>
               <tr><td>learning_rate (theo họ model)</td><td>BiLSTM: 5e-4, 1e-3; DistilBERT: 1e-5, 2e-5, 3e-5; BERT: 2e-5, 3e-5</td></tr>
               <tr><td>batch_size (theo họ model)</td><td>BiLSTM: 32, 64; DistilBERT: 16, 32; BERT: 8, 16</td></tr>
               <tr><td>epochs (theo họ model)</td><td>BiLSTM: 15, 20; DistilBERT: 4, 5; BERT: 4, 5</td></tr>
@@ -339,8 +345,8 @@
         </select>
         <select id="setupFilter" aria-label="Filter by setup">
           <option value="all">Tất cả setup</option>
-          <option value="weighted_ce">weighted_ce</option>
-          <option value="undersample_ce">undersample_ce</option>
+          <option value="weighted_ce">weighted_ce (orig train + weighted CE)</option>
+          <option value="undersample_ce">undersample_ce (undersampled train + CE)</option>
           <option value="freeze">freeze</option>
           <option value="full">full</option>
           <option value="llrd">llrd</option>
@@ -391,8 +397,8 @@
       <div class="control-row compact">
         <select id="cmGroup" aria-label="Confusion matrix group">
           <option value="all">All checkpoints</option>
-          <option value="weighted">weighted_ce only</option>
-          <option value="undersample">undersample_ce only</option>
+          <option value="weighted">weighted_ce only (orig train + weighted CE)</option>
+          <option value="undersample">undersample_ce only (undersampled train + CE)</option>
           <option value="bert">BERT family</option>
           <option value="distilbert">DistilBERT family</option>
           <option value="rnn">RNN family</option>

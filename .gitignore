@@ -26,3 +26,8 @@ data/wandb-scerets/.env
 *.zip
 
 hf_space/
+
+report_slide*
+
+Background.pdf
+BK.png

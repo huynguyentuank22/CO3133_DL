@@ -694,7 +694,7 @@ function renderArchitectureFlow() {
     "Làm sạch + full_text",
     "Chia stratified",
     "Dataloader RNN/Transformer",
-    "Huấn luyện (weighted/undersample)",
+    "Huấn luyện (orig + weighted CE / undersample + CE)",
     "Đánh giá + phân tích"
   ];
 
