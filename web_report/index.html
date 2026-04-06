@@ -346,30 +346,46 @@
           <option value="llrd">llrd</option>
         </select>
         <select id="sortMetric" aria-label="Sort by metric">
-          <option value="macro_f1">Sắp xếp theo Macro-F1</option>
+          <option value="model_name">Sắp xếp theo Tên model (A-Z)</option>
+          <option value="macro_f1" selected>Sắp xếp theo Macro-F1</option>
           <option value="accuracy">Sắp xếp theo Accuracy</option>
           <option value="weighted_f1">Sắp xếp theo Weighted-F1</option>
+          <option value="precision">Sắp xếp theo Precision</option>
+          <option value="recall">Sắp xếp theo Recall</option>
           <option value="mae">Sắp xếp theo MAE</option>
+          <option value="num_parameters">Sắp xếp theo Num Parameters</option>
           <option value="inference_time_per_sample_ms">Sắp xếp theo Inference ms</option>
           <option value="model_size_mb">Sắp xếp theo Model size</option>
         </select>
+      </div>
+
+      <div class="metric-legend" aria-label="Metric direction and top rank legend">
+        <span class="metric-legend-item">
+          <span class="metric-goal up" aria-hidden="true">↑</span>
+          Càng cao càng tốt
+        </span>
+        <span class="metric-legend-item">
+          <span class="metric-goal down" aria-hidden="true">↓</span>
+          Càng thấp càng tốt
+        </span>
+        <span class="metric-legend-item">
+          <span class="legend-swatch metric-rank-1" aria-hidden="true"></span>
+          Top 1
+        </span>
+        <span class="metric-legend-item">
+          <span class="legend-swatch metric-rank-2" aria-hidden="true"></span>
+          Top 2
+        </span>
+        <span class="metric-legend-item">
+          <span class="legend-swatch metric-rank-3" aria-hidden="true"></span>
+          Top 3
+        </span>
       </div>
 
       <div class="table-wrap" id="modelTableWrap"></div>
 
       <h3>Top model theo Macro-F1</h3>
       <div id="topBars" class="bars-wrap"></div>
-
-      <div class="table-grid-2">
-        <article>
-          <h3>Ensemble alpha search</h3>
-          <div class="table-wrap" id="ensembleAlphaTable"></div>
-        </article>
-        <article>
-          <h3>Robustness clean vs noisy</h3>
-          <div class="table-wrap" id="robustnessTable"></div>
-        </article>
-      </div>
 
       <h3>Confusion matrix gallery</h3>
       <div class="control-row compact">
@@ -383,6 +399,33 @@
         </select>
       </div>
       <div class="figure-grid" id="confusionGallery"></div>
+
+      <div class="table-stack">
+        <article>
+          <h3>Ensemble alpha search</h3>
+          <div class="table-wrap table-wrap-fit table-wrap-compact" id="ensembleAlphaTable"></div>
+          <div class="step-card">
+            <h4>Ghi chú</h4>
+            <ul>
+              <li>Pipeline ensemble hiện tại kết hợp 2 checkpoint: <strong>BERT-full-undersample</strong> và <strong>BERT-full-weighted</strong>.</li>
+              <li>Phương pháp kết hợp là trung bình có trọng số trên xác suất lớp: p_final = alpha * p_A + (1 - alpha) * p_B, sau đó lấy argmax để suy ra nhãn.</li>
+              <li>Alpha được quét trên {0.3, 0.4, 0.5, 0.6, 0.7}.</li>
+            </ul>
+          </div>
+        </article>
+        <article>
+          <h3>Robustness clean vs noisy</h3>
+          <div class="table-wrap table-wrap-fit table-wrap-compact" id="robustnessTable"></div>
+          <div class="step-card">
+            <h4>Ghi chú</h4>
+            <ul>
+              <li>Đánh giá robustness được thực hiện trên <strong>test.csv (clean)</strong> và tập <strong>noisy_test_df</strong> tạo trực tiếp từ test set bằng create_noisy_test_set (scripts/run_robustness.py, src/robustness.py).</li>
+              <li>Nhiễu áp dụng lên full_text gồm: typo (0.03), random case (0.08), thêm punctuation (0.03), và drop token (0.03).</li>
+              <li>Bảng dùng best checkpoint theo từng family (BiLSTM, BiLSTM+Attention, DistilBERT, BERT-base); trong đó drop = clean - noisy > 0 biểu thị suy giảm, còn với MAE thì drop = noisy - clean.</li>
+            </ul>
+          </div>
+        </article>
+      </div>
     </section>
 
     <section id="section-08" class="panel">
@@ -391,18 +434,15 @@
         <h2>Phân tích đúng-sai và giải thích hành vi model</h2>
       </div>
 
-      <div class="table-grid-2">
-        <article>
-          <h3>Tổng hợp lỗi (best mỗi family)</h3>
-          <div class="table-wrap" id="errorSummaryTable"></div>
-        </article>
-        <article>
-          <h3>Nhóm lỗi nổi bật (BERT tốt nhất)</h3>
-          <div class="table-wrap" id="errorCategoryTable"></div>
-        </article>
-      </div>
-
-      <div class="case-grid" id="caseStudyGrid"></div>
+      <article class="ig-xai-block">
+        <h3>IG Case Studies (BERT-base)</h3>
+        <p class="ig-xai-note">
+          Các case dưới đây được tổng hợp trực tiếp từ
+          <strong>outputs/reports/xai_results/bert_xai.html</strong>
+          (cả đúng và sai), tập trung vào top token theo Integrated Gradients.
+        </p>
+        <div class="ig-case-grid" id="bertIgCaseGrid"></div>
+      </article>
 
       <article class="discussion-box">
         <h3>Insight tổng hợp</h3>

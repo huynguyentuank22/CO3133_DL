@@ -129,6 +129,117 @@ const caseStudies = [
   }
 ];
 
+const bertIgCases = [
+  {
+    id: 0,
+    title: "Amazing dress!",
+    status: "correct",
+    text_line: "Amazing dress! Wow! i saw this dress in the store and had to try it on. it is simply stunning! the bright colors and design are a true tracy reese dress and i looked like a fairy queen in it! lol. i can't wait to wear it!",
+    true_rating: 5,
+    pred_rating: 5,
+    confidence: 0.9344,
+    source: "bert_xai.html",
+    top_tokens: [
+      { token: "[SEP]", weight: 1.0 },
+      { token: "[SEP]", weight: 0.8050 },
+      { token: "stunning", weight: 0.2816 },
+      { token: "wait", weight: 0.1463 },
+      { token: "amazing", weight: 0.1348 }
+    ],
+    insight: "IG tập trung vào từ cảm xúc mạnh (stunning, amazing) nên dự đoán lớp 5 ổn định và độ tin cậy cao."
+  },
+  {
+    id: 2,
+    title: "Pretty but runs long",
+    status: "correct",
+    text_line: "Pretty but runs long. the details on the top are just as nice in person as shown in the photos. however, it runs long and i need to belt it or tuck it.",
+    true_rating: 4,
+    pred_rating: 4,
+    confidence: 0.7400,
+    source: "bert_xai.html",
+    top_tokens: [
+      { token: "[SEP]", weight: 1.0 },
+      { token: "love", weight: 0.2218 },
+      { token: "well", weight: 0.1934 },
+      { token: "love", weight: 0.1925 },
+      { token: "[SEP]", weight: 0.1414 }
+    ],
+    insight: "Nội dung vừa khen vừa góp ý, nhưng các token tích cực (love, well) chiếm trọng số cao nên mô hình giữ đúng lớp 4."
+  },
+  {
+    id: 3,
+    title: "Pretty blouse",
+    status: "correct",
+    text_line: "Pretty blouse. very cute but a little short. currently pregnant so i'm hoping it will hang better in a few months.",
+    true_rating: 4,
+    pred_rating: 4,
+    confidence: 0.8115,
+    source: "bert_xai.html",
+    top_tokens: [
+      { token: "[SEP]", weight: 1.0 },
+      { token: "[SEP]", weight: 0.3758 },
+      { token: "better", weight: 0.3752 },
+      { token: "blouse", weight: 0.3284 },
+      { token: "pretty", weight: 0.3255 }
+    ],
+    insight: "IG nhấn mạnh các token mô tả mức hài lòng vừa phải (pretty, better), phù hợp với dự đoán rating 4."
+  },
+  {
+    id: 1,
+    title: "Well fitting bra, comfortable",
+    status: "incorrect",
+    text_line: "Well fitting bra, comfortable (not itchy), lace doesn't show through tops.",
+    true_rating: 5,
+    pred_rating: 4,
+    confidence: 0.7864,
+    source: "bert_xai.html",
+    top_tokens: [
+      { token: "comfortable", weight: 1.0 },
+      { token: "well", weight: 0.7420 },
+      { token: "[SEP]", weight: 0.5735 },
+      { token: "through", weight: 0.3560 },
+      { token: "not", weight: 0.2485 }
+    ],
+    insight: "Model nhận mạnh tín hiệu tích cực (comfortable, well) nhưng vẫn có token phủ định (not), nên lệch xuống lớp 4 thay vì 5."
+  },
+  {
+    id: 5,
+    title: "Prettier in pic!",
+    status: "incorrect",
+    text_line: "Prettier in pic! i just returned this top. the neckline is way too deep, i ordered small and i looked ridiculous in it. also the ruffles didn't look so great on me either.",
+    true_rating: 2,
+    pred_rating: 3,
+    confidence: 0.7198,
+    source: "bert_xai.html",
+    top_tokens: [
+      { token: "[SEP]", weight: 1.0 },
+      { token: "##tti", weight: 0.8757 },
+      { token: "[SEP]", weight: 0.7582 },
+      { token: "pre", weight: 0.7301 },
+      { token: "too", weight: 0.5582 }
+    ],
+    insight: "Các token nổi bật bị tách subword mạnh (pre + ##tti) và thiên về tín hiệu trung tính/miêu tả, khiến dự đoán dồn về lớp giữa (3)."
+  },
+  {
+    id: 7,
+    title: "Great summer dress",
+    status: "incorrect",
+    text_line: "Great summer dress. super comfortable summer dress. just bought it yesterday and i don't want to take it off. soft lightweight fabric.",
+    true_rating: 5,
+    pred_rating: 4,
+    confidence: 0.5359,
+    source: "bert_xai.html",
+    top_tokens: [
+      { token: "[SEP]", weight: 1.0 },
+      { token: "[SEP]", weight: 0.7793 },
+      { token: "comfortable", weight: 0.7121 },
+      { token: "'", weight: 0.5607 },
+      { token: "dress", weight: 0.3984 }
+    ],
+    insight: "Dù có tín hiệu tích cực, confidence thấp và điểm chú ý phân tán nên mô hình chỉ dự đoán lớp lân cận 4 thay vì 5."
+  }
+];
+
 const demoCases = [
   {
     id: "demo-correct",
@@ -203,6 +314,104 @@ function fmt(value, digits = 4) {
   return Number(value).toFixed(digits);
 }
 
+function escapeHtml(text) {
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function normToken(token) {
+  return String(token || "")
+    .toLowerCase()
+    .replace(/^#+/, "")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function igColor(weight) {
+  const w = Math.max(0, Math.min(1, Number(weight) || 0));
+  const r = Math.round(255 * w);
+  const g = Math.round(255 - 128 * w);
+  const b = 100;
+  return `rgb(${r},${g},${b})`;
+}
+
+function renderIgLine(text, topTokens) {
+  const tokenMap = new Map();
+  topTokens.forEach((t) => {
+    const key = normToken(t.token);
+    if (!key || key === "sep" || key.length < 2) return;
+    tokenMap.set(key, Math.max(t.weight, tokenMap.get(key) || 0));
+  });
+
+  const parts = String(text || "").split(/(\s+)/);
+  return parts
+    .map((part) => {
+      if (/^\s+$/.test(part)) return part;
+
+      const key = normToken(part);
+      if (!key) return escapeHtml(part);
+
+      let weight = tokenMap.get(key) || 0;
+      if (!weight && key.length > 4) {
+        tokenMap.forEach((v, k) => {
+          if (k.length > 3 && (key.includes(k) || k.includes(key))) {
+            weight = Math.max(weight, v);
+          }
+        });
+      }
+
+      if (!weight) {
+        return `<span class="ig-word">${escapeHtml(part)}</span>`;
+      }
+
+      return `<span class="ig-word ig-word-hit" style="background-color:${igColor(weight)}" title="weight=${fmt(weight, 4)}">${escapeHtml(part)}</span>`;
+    })
+    .join("");
+}
+
+let bertIgRawMapPromise = null;
+
+function loadBertIgRawMap() {
+  if (bertIgRawMapPromise) return bertIgRawMapPromise;
+
+  bertIgRawMapPromise = fetch("../outputs/reports/xai_results/bert_xai.html")
+    .then((resp) => {
+      if (!resp.ok) throw new Error(`Cannot load bert_xai.html (${resp.status})`);
+      return resp.text();
+    })
+    .then((html) => {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, "text/html");
+      const blocks = [...doc.querySelectorAll("div[style*='font-family:monospace']")];
+      const map = new Map();
+
+      blocks.forEach((block) => {
+        const header = block.querySelector("p");
+        if (!header) return;
+
+        const idMatch = header.textContent.match(/ID:\s*(\d+)/i);
+        if (!idMatch) return;
+        const id = Number(idMatch[1]);
+
+        const lineHtml = block.innerHTML.replace(header.outerHTML, "").trim();
+        const topTokensNode = block.nextElementSibling && block.nextElementSibling.tagName === "P"
+          ? block.nextElementSibling
+          : null;
+        const topTokensHtml = topTokensNode ? topTokensNode.outerHTML : "";
+
+        map.set(id, { lineHtml, topTokensHtml });
+      });
+
+      return map;
+    })
+    .catch(() => new Map());
+
+  return bertIgRawMapPromise;
+}
+
 function fmtInt(value) {
   return Number(value).toLocaleString("en-US");
 }
@@ -260,6 +469,88 @@ function createTable(headers, rows) {
       td.textContent = cell;
       tr.appendChild(td);
     });
+    tbody.appendChild(tr);
+  });
+
+  table.appendChild(thead);
+  table.appendChild(tbody);
+  return table;
+}
+
+function buildRankMap(rows, key, goal, topN = 3) {
+  const ranked = [...rows]
+    .sort((a, b) => (goal === "max" ? b[key] - a[key] : a[key] - b[key]))
+    .slice(0, topN);
+
+  const rankMap = new Map();
+  ranked.forEach((row, idx) => {
+    rankMap.set(row, idx + 1);
+  });
+  return rankMap;
+}
+
+function createRankedMetricTable(columns, rows) {
+  const table = document.createElement("table");
+  const thead = document.createElement("thead");
+  const trHead = document.createElement("tr");
+
+  const rankMaps = {};
+  columns
+    .filter((col) => col.goal)
+    .forEach((col) => {
+      rankMaps[col.key] = buildRankMap(rows, col.key, col.goal, 3);
+    });
+
+  columns.forEach((col) => {
+    const th = document.createElement("th");
+
+    if (!col.goal) {
+      th.textContent = col.label;
+      trHead.appendChild(th);
+      return;
+    }
+
+    const headWrap = document.createElement("span");
+    headWrap.className = "metric-head";
+
+    const label = document.createElement("span");
+    label.textContent = col.label;
+
+    const goal = document.createElement("span");
+    goal.className = `metric-goal ${col.goal === "max" ? "up" : "down"}`;
+    goal.textContent = col.goal === "max" ? "↑" : "↓";
+    goal.title = col.goal === "max" ? "Cang cao cang tot" : "Cang thap cang tot";
+    goal.setAttribute("aria-label", goal.title);
+
+    headWrap.appendChild(label);
+    headWrap.appendChild(goal);
+    th.appendChild(headWrap);
+    if (col.dividerAfter) th.classList.add("metric-divider");
+    trHead.appendChild(th);
+  });
+
+  thead.appendChild(trHead);
+
+  const tbody = document.createElement("tbody");
+  rows.forEach((row) => {
+    const tr = document.createElement("tr");
+
+    columns.forEach((col) => {
+      const td = document.createElement("td");
+      td.textContent = col.formatter ? col.formatter(row[col.key]) : String(row[col.key]);
+      if (col.dividerAfter) td.classList.add("metric-divider");
+
+      if (col.goal) {
+        const rank = rankMaps[col.key].get(row);
+        if (rank) {
+          td.classList.add("metric-rank", `metric-rank-${rank}`);
+          td.title = `Top ${rank} cho ${col.label}`;
+        }
+      }
+
+      tr.appendChild(td);
+    });
+
     tbody.appendChild(tr);
   });
 
@@ -453,8 +744,45 @@ function renderLrConfig() {
 }
 
 function sortModels(data, key) {
-  const asc = key === "mae" || key === "inference_time_per_sample_ms" || key === "model_size_mb";
+  if (key === "model_name") {
+    return [...data].sort((a, b) => String(a.model_name).localeCompare(String(b.model_name)));
+  }
+
+  const asc = key === "mae" || key === "num_parameters" || key === "inference_time_per_sample_ms" || key === "model_size_mb";
   return [...data].sort((a, b) => (asc ? a[key] - b[key] : b[key] - a[key]));
+}
+
+const modelTableColumns = [
+  { key: "model_name", label: "model_name", goal: null, formatter: (v) => String(v) },
+  { key: "accuracy", label: "accuracy", goal: "max", formatter: (v) => fmt(v) },
+  { key: "macro_f1", label: "macro_f1", goal: "max", formatter: (v) => fmt(v) },
+  { key: "weighted_f1", label: "weighted_f1", goal: "max", formatter: (v) => fmt(v) },
+  { key: "precision", label: "precision", goal: "max", formatter: (v) => fmt(v) },
+  { key: "recall", label: "recall", goal: "max", formatter: (v) => fmt(v) },
+  { key: "mae", label: "mae", goal: "min", formatter: (v) => fmt(v) },
+  { key: "num_parameters", label: "num_parameters", goal: "min", formatter: (v) => fmtInt(v) },
+  { key: "model_size_mb", label: "model_size_mb", goal: "min", formatter: (v) => fmt(v, 2) },
+  { key: "inference_time_per_sample_ms", label: "inference_ms", goal: "min", formatter: (v) => fmt(v, 4) }
+];
+
+function getTopRankMaps(rows, topN = 3) {
+  const maps = {};
+
+  modelTableColumns
+    .filter((col) => col.goal)
+    .forEach((col) => {
+      const ranked = [...rows]
+        .sort((a, b) => (col.goal === "max" ? b[col.key] - a[col.key] : a[col.key] - b[col.key]))
+        .slice(0, topN);
+
+      const rankByModel = new Map();
+      ranked.forEach((row, idx) => {
+        rankByModel.set(row.model_name, idx + 1);
+      });
+      maps[col.key] = rankByModel;
+    });
+
+  return maps;
 }
 
 function renderModelTable() {
@@ -479,33 +807,68 @@ function renderModelTable() {
 
   const sorted = sortModels(filtered, sortMetric);
 
-  const headers = [
-    "model_name",
-    "accuracy",
-    "macro_f1",
-    "weighted_f1",
-    "precision",
-    "recall",
-    "mae",
-    "num_parameters",
-    "model_size_mb",
-    "inference_ms"
-  ];
-  const rows = sorted.map((r) => [
-    r.model_name,
-    fmt(r.accuracy),
-    fmt(r.macro_f1),
-    fmt(r.weighted_f1),
-    fmt(r.precision),
-    fmt(r.recall),
-    fmt(r.mae),
-    fmtInt(r.num_parameters),
-    fmt(r.model_size_mb, 2),
-    fmt(r.inference_time_per_sample_ms, 4)
-  ]);
+  const topRanks = getTopRankMaps(filtered, 3);
+
+  const table = document.createElement("table");
+  const thead = document.createElement("thead");
+  const trHead = document.createElement("tr");
+
+  modelTableColumns.forEach((col) => {
+    const th = document.createElement("th");
+
+    if (!col.goal) {
+      th.textContent = col.label;
+      trHead.appendChild(th);
+      return;
+    }
+
+    const headWrap = document.createElement("span");
+    headWrap.className = "metric-head";
+
+    const label = document.createElement("span");
+    label.textContent = col.label;
+
+    const goal = document.createElement("span");
+    goal.className = `metric-goal ${col.goal === "max" ? "up" : "down"}`;
+    goal.textContent = col.goal === "max" ? "↑" : "↓";
+    goal.title = col.goal === "max" ? "Cang cao cang tot" : "Cang thap cang tot";
+    goal.setAttribute("aria-label", goal.title);
+
+    headWrap.appendChild(label);
+    headWrap.appendChild(goal);
+    th.appendChild(headWrap);
+    trHead.appendChild(th);
+  });
+
+  thead.appendChild(trHead);
+
+  const tbody = document.createElement("tbody");
+  sorted.forEach((row) => {
+    const tr = document.createElement("tr");
+
+    modelTableColumns.forEach((col) => {
+      const td = document.createElement("td");
+      td.textContent = col.formatter(row[col.key]);
+
+      if (col.goal) {
+        const rank = topRanks[col.key].get(row.model_name);
+        if (rank) {
+          td.classList.add("metric-rank", `metric-rank-${rank}`);
+          td.title = `Top ${rank} cho ${col.label}`;
+        }
+      }
+
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+
+  table.appendChild(thead);
+  table.appendChild(tbody);
 
   wrap.innerHTML = "";
-  wrap.appendChild(createTable(headers, rows));
+  wrap.appendChild(table);
 }
 
 function renderTopBars(metric = "macro_f1", topN = 8) {
@@ -533,39 +896,39 @@ function renderEnsembleTable() {
   const wrap = document.getElementById("ensembleAlphaTable");
   if (!wrap) return;
 
-  const headers = ["alpha", "accuracy", "macro_f1", "weighted_f1", "precision", "recall", "mae"];
-  const rows = ensembleAlphaData.map((r) => [
-    fmt(r.alpha, 1),
-    fmt(r.accuracy),
-    fmt(r.macro_f1),
-    fmt(r.weighted_f1),
-    fmt(r.precision),
-    fmt(r.recall),
-    fmt(r.mae)
-  ]);
+  const columns = [
+    { key: "alpha", label: "alpha", formatter: (v) => fmt(v, 1) },
+    { key: "accuracy", label: "accuracy", goal: "max", formatter: (v) => fmt(v) },
+    { key: "macro_f1", label: "macro_f1", goal: "max", formatter: (v) => fmt(v) },
+    { key: "weighted_f1", label: "weighted_f1", goal: "max", formatter: (v) => fmt(v) },
+    { key: "precision", label: "precision", goal: "max", formatter: (v) => fmt(v) },
+    { key: "recall", label: "recall", goal: "max", formatter: (v) => fmt(v) },
+    { key: "mae", label: "mae", goal: "min", formatter: (v) => fmt(v) }
+  ];
 
   wrap.innerHTML = "";
-  wrap.appendChild(createTable(headers, rows));
+  wrap.appendChild(createRankedMetricTable(columns, ensembleAlphaData));
 }
 
 function renderRobustnessTable() {
   const wrap = document.getElementById("robustnessTable");
   if (!wrap) return;
 
-  const headers = ["model", "clean_acc", "noisy_acc", "drop_acc", "clean_macro_f1", "noisy_macro_f1", "drop_macro_f1", "drop_mae"];
-  const rows = robustnessData.map((r) => [
-    r.model_name,
-    fmt(r.clean_accuracy),
-    fmt(r.noisy_accuracy),
-    fmt(r.drop_accuracy),
-    fmt(r.clean_macro_f1),
-    fmt(r.noisy_macro_f1),
-    fmt(r.drop_macro_f1),
-    fmt(r.drop_mae)
-  ]);
+  const columns = [
+    { key: "model_name", label: "model" },
+    { key: "clean_accuracy", label: "clean_acc", goal: "max", formatter: (v) => fmt(v) },
+    { key: "noisy_accuracy", label: "noisy_acc", goal: "max", formatter: (v) => fmt(v) },
+    { key: "drop_accuracy", label: "drop_acc", goal: "min", formatter: (v) => fmt(v), dividerAfter: true },
+    { key: "clean_macro_f1", label: "clean_macro_f1", goal: "max", formatter: (v) => fmt(v) },
+    { key: "noisy_macro_f1", label: "noisy_macro_f1", goal: "max", formatter: (v) => fmt(v) },
+    { key: "drop_macro_f1", label: "drop_macro_f1", goal: "min", formatter: (v) => fmt(v), dividerAfter: true },
+    { key: "clean_mae", label: "clean_mae", goal: "min", formatter: (v) => fmt(v) },
+    { key: "noisy_mae", label: "noisy_mae", goal: "min", formatter: (v) => fmt(v) },
+    { key: "drop_mae", label: "drop_mae", goal: "min", formatter: (v) => fmt(v) }
+  ];
 
   wrap.innerHTML = "";
-  wrap.appendChild(createTable(headers, rows));
+  wrap.appendChild(createRankedMetricTable(columns, robustnessData));
 }
 
 function renderErrorSummary() {
@@ -610,6 +973,41 @@ function renderCaseStudies() {
       <p class="case-source">Source: ${item.source}</p>
       <button class="ghost-btn open-full-text" data-title="${item.title.replace(/"/g, "&quot;")}" data-body="${item.review_text.replace(/"/g, "&quot;")}">Xem toàn văn</button>
     `;
+    wrap.appendChild(card);
+  });
+}
+
+async function renderBertIgCases() {
+  const wrap = document.getElementById("bertIgCaseGrid");
+  if (!wrap) return;
+
+  wrap.innerHTML = "";
+  const rawMap = await loadBertIgRawMap();
+
+  bertIgCases.forEach((item) => {
+    const card = document.createElement("article");
+    const ok = item.status === "correct";
+    card.className = `ig-case-card ${ok ? "is-correct" : "is-incorrect"}`;
+
+    const raw = rawMap.get(item.id);
+    const lineHtml = raw?.lineHtml || renderIgLine(item.text_line, item.top_tokens);
+    const topFallback = `<p class="ig-top-line"><em>Top tokens: ${item.top_tokens
+      .map((t) => `${t.token}(${fmt(t.weight, 3)})`)
+      .join(", ")}</em></p>`;
+    const topTokensHtml = raw?.topTokensHtml || topFallback;
+
+    card.innerHTML = `
+      <div class="ig-case-head">
+        <p class="ig-case-tag ${ok ? "ok" : "err"}">${ok ? "Case đúng" : "Case sai"}</p>
+        <p class="ig-case-id">ID ${item.id} • ${item.source}</p>
+      </div>
+      <h4>${item.title}</h4>
+      <p class="ig-case-metrics">True=${item.true_rating} | Pred=${item.pred_rating} | Confidence=${fmt(item.confidence, 4)}</p>
+      <div class="ig-inline-line">${lineHtml}</div>
+      ${topTokensHtml}
+      <p class="ig-case-insight"><strong>IG insight:</strong> ${item.insight}</p>
+    `;
+
     wrap.appendChild(card);
   });
 }
@@ -899,9 +1297,7 @@ function init() {
   renderRobustnessTable();
   renderConfusionGallery();
 
-  renderErrorSummary();
-  renderErrorCategoryTable();
-  renderCaseStudies();
+  renderBertIgCases();
 
   renderDemoSelect();
   fillDemoFromSelection();
