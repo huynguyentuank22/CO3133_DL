@@ -24,3 +24,5 @@ data/wandb-scerets/.env
 *.h5
 .ipynb_checkpoints/
 *.zip
+
+hf_space/
