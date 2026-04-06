@@ -83,16 +83,16 @@
 
       <div class="figure-grid eda-figure-grid">
         <figure class="figure-card eda-card-rating">
-          <img src="../outputs/figures/eda/raw_rating_review_token_by_rating.png" alt="Raw rating and token distribution" loading="lazy">
-          <figcaption>Phân bố rating và token theo từng rating trên dữ liệu gốc.</figcaption>
+          <img src="../outputs/figures/eda/raw_rating_review_token_by_rating.png" alt="Raw rating and review word-count distribution" loading="lazy">
+          <figcaption>Phân bố rating và số từ review theo từng rating trên dữ liệu gốc.</figcaption>
         </figure>
         <figure class="figure-card eda-card-token">
           <img src="../outputs/figures/eda/raw_title_review_token_length.png" alt="Raw title and review lengths" loading="lazy">
           <figcaption>Độ dài title/review trước preprocessing.</figcaption>
         </figure>
         <figure class="figure-card eda-card-missing">
-          <img src="../outputs/figures/eda/raw_missing_and_token_gap.png" alt="Missing values and token gap" loading="lazy">
-          <figcaption>Tỉ lệ missing và khoảng cách token giữa title và review.</figcaption>
+          <img src="../outputs/figures/eda/raw_missing_and_token_gap.png" alt="Missing values and review-title word-count gap" loading="lazy">
+          <figcaption>Tỉ lệ missing và khoảng cách số từ giữa title và review.</figcaption>
         </figure>
       </div>
     </section>
@@ -109,7 +109,7 @@
           <li>Drop missing review_text/rating, fill missing title.</li>
           <li>Deduplicate theo title + review_text + rating.</li>
           <li>Normalize whitespace cho title và review_text.</li>
-          <li>Bỏ review quá ngắn (&lt;3 tokens).</li>
+          <li>Bỏ review quá ngắn (&lt;3 từ).</li>
           <li>Tạo full_text = title [SEP] review_text và map label 0-4.</li>
         </ol>
       </article>
@@ -136,7 +136,7 @@
                   <td class="value-with-delta">22,636 <span class="delta-badge" aria-label="Giam 5 mau so voi buoc truoc">&darr;5</span></td>
                 </tr>
                 <tr>
-                  <td><strong>Sau lọc review &lt; 3 tokens - kết quả cuối</strong></td>
+                  <td><strong>Sau lọc review &lt; 3 từ - kết quả cuối</strong></td>
                   <td class="value-with-delta"><strong>22,628</strong> <span class="delta-badge" aria-label="Giam 8 mau so voi buoc truoc">&darr;8</span></td>
                 </tr>
                 <tr><td>Tỉ lệ giữ lại cuối cùng so với raw</td><td>96.35%</td></tr>
@@ -146,12 +146,12 @@
         </article>
 
         <article>
-          <h3>So sánh token length before/after</h3>
+          <h3>So sánh review word count before/after</h3>
           <div class="table-wrap table-wrap-fit">
             <table>
               <thead>
                 <tr>
-                  <th>Thống kê review token</th>
+                  <th>Thống kê số từ review</th>
                   <th>Before</th>
                   <th>After</th>
                 </tr>
@@ -172,8 +172,8 @@
           <figcaption>So sánh phân bố rating trước/sau prepare data.</figcaption>
         </figure>
         <figure class="figure-card">
-          <img src="../outputs/figures/eda/token_length_before_after_prepare.png" alt="Token length before and after prepare" loading="lazy">
-          <figcaption>So sánh token length before/after preprocessing.</figcaption>
+          <img src="../outputs/figures/eda/token_length_before_after_prepare.png" alt="Review word count before and after prepare" loading="lazy">
+          <figcaption>So sánh review word count before/after preprocessing.</figcaption>
         </figure>
       </div>
     </section>

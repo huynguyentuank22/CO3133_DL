@@ -17,23 +17,23 @@ Các hình được xuất từ notebook `notebooks/eda.ipynb` vào thư mục `
 
 ### Raw Data Overview
 
-![Raw Rating and Review Token by Rating](outputs/figures/eda/raw_rating_review_token_by_rating.png)
+![Raw Rating and Review Word Count by Rating](outputs/figures/eda/raw_rating_review_token_by_rating.png)
 
-![Raw Title and Review Token Length](outputs/figures/eda/raw_title_review_token_length.png)
+![Raw Title and Review Word Count](outputs/figures/eda/raw_title_review_token_length.png)
 
-![Raw Missing and Token Gap](outputs/figures/eda/raw_missing_and_token_gap.png)
+![Raw Missing and Review-Title Word Count Gap](outputs/figures/eda/raw_missing_and_token_gap.png)
 
 ### After Prepare Data Overview
 
 ![After Prepare Rating Comparison](outputs/figures/eda/after_prepare_rating_comparison.png)
 
-![Token Length Before After Prepare](outputs/figures/eda/token_length_before_after_prepare.png)
+![Review Word Count Before After Prepare](outputs/figures/eda/token_length_before_after_prepare.png)
 
 ### Train Val Test Split Checks
 
 ![Split Rating Count Ratio](outputs/figures/eda/split_rating_count_ratio.png)
 
-![Split Title Review Token Length](outputs/figures/eda/split_title_review_token_length.png)
+![Split Title and Review Word Count](outputs/figures/eda/split_title_review_token_length.png)
 
 ## Full Model Comparison (All Runs)
 
