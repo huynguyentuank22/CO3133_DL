@@ -876,6 +876,33 @@ tr:hover td.metric-rank-3 {
   color: var(--muted);
 }
 
+.space-embed-card {
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  margin: 10px 0 14px;
+}
+
+.space-embed-card h3 {
+  margin: 0 0 6px;
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.space-embed-note {
+  margin: 0 0 10px;
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+
+.space-iframe {
+  width: 100%;
+  min-height: 760px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+
 .demo-form {
   display: grid;
   gap: 8px;
@@ -997,6 +1024,10 @@ tr:hover td.metric-rank-3 {
 
   .ig-case-grid {
     grid-template-columns: 1fr;
+  }
+
+  .space-iframe {
+    min-height: 620px;
   }
 
   .site-header {

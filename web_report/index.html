@@ -468,38 +468,27 @@
     <section id="live-demo" class="panel">
       <div class="section-head">
         <p class="eyebrow">Live Demo</p>
-        <h2>Nhập dữ liệu / chọn instance / chạy thử kết quả</h2>
+        <h2>Trải nghiệm trực tiếp trên Gradio Space</h2>
       </div>
 
       <p>
-        Section này mô phỏng giao diện suy luận bằng các instance đã được đánh giá trong repo.
-        Nếu cần infer thời gian thực với model checkpoint, mở Streamlit app trong app/streamlit_app.py.
+        Dùng trực tiếp Gradio Space bên dưới để nhập dữ liệu và nhận dự đoán.
       </p>
 
-      <div class="demo-grid">
-        <form id="demoForm" class="demo-form">
-          <label for="demoCaseSelect">Chọn instance có sẵn</label>
-          <select id="demoCaseSelect" aria-label="Select demo case"></select>
+      <article class="space-embed-card">
+        <h3>Hugging Face Space Embed</h3>
+        <p class="space-embed-note">
+          Space URL: <code>https://huynguyentuan-dl-assignment-1-demo.hf.space</code>.
+        </p>
+        <iframe
+          class="space-iframe"
+          src="https://huynguyentuan-dl-assignment-1-demo.hf.space"
+          title="Hugging Face Gradio Space"
+          loading="lazy"
+          referrerpolicy="no-referrer"
+        ></iframe>
+      </article>
 
-          <label for="demoTitleInput">Title</label>
-          <input id="demoTitleInput" type="text" placeholder="Nhập title (optional)">
-
-          <label for="demoReviewInput">Review text</label>
-          <textarea id="demoReviewInput" rows="6" placeholder="Nhập review text"></textarea>
-
-          <button type="submit" class="primary-btn">Run demo prediction</button>
-        </form>
-
-        <article class="demo-result" id="demoResult">
-          <h3>Kết quả</h3>
-          <p>Chưa có dữ liệu. Hãy chọn 1 instance và bấm Run demo prediction.</p>
-        </article>
-      </div>
-
-      <div class="link-grid">
-        <a class="chip" href="../app/streamlit_app.py" target="_blank" rel="noopener noreferrer">Mở file Streamlit app</a>
-        <a class="chip" href="../outputs/reports/error_analysis/bert_llrd_weighted_ce_misclassified.csv" target="_blank" rel="noopener noreferrer">Nguồn demo cases</a>
-      </div>
     </section>
   </main>
 
